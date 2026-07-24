@@ -11,6 +11,8 @@ const state = {
     currentArticleUrl: null,
     searchTimer: null,
     fullTextReady: false,
+    catalogRendered: false,
+    catalogExpanded: new Set(), // 记录已展开渲染的年份/期数
 };
 
 const CN = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
@@ -39,17 +41,24 @@ async function loadMeta() {
     }
 }
 
-async function loadYearData(year) {
+async function loadYearData(year, retry = 2) {
     year = String(year);
-    if (state.loadedYears.has(year) || state.loadingYears.has(year)) return;
+    if (state.loadedYears.has(year) || state.loadingYears.has(year)) return state.loadedYears.has(year);
     state.loadingYears.add(year);
     try {
         const resp = await fetch(`data/years/${year}.json`);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         state.yearData[year] = await resp.json();
         state.loadedYears.add(year);
+        return true;
     } catch (e) {
         console.error(`加载 ${year} 年数据失败:`, e);
+        if (retry > 0) {
+            await new Promise(r => setTimeout(r, 800));
+            state.loadingYears.delete(year);
+            return loadYearData(year, retry - 1);
+        }
+        return false;
     } finally {
         state.loadingYears.delete(year);
     }
@@ -61,8 +70,10 @@ async function loadAllYearsBackground() {
     status.className = 'search-status loading';
     status.textContent = '全文搜索加载中...';
 
-    // 并行加载所有年份
-    await Promise.all(years.map(y => loadYearData(y)));
+    // 逐个加载，避免手机网络并行请求过多导致失败
+    for (const y of years) {
+        await loadYearData(y);
+    }
 
     state.fullTextReady = true;
     status.className = 'search-status ready';
@@ -101,7 +112,7 @@ function toggleFavorite(url) {
     if (idx >= 0) {
         state.favorites.splice(idx, 1);
     } else {
-        state.favorites.unshift(url); // 最新的在前
+        state.favorites.unshift(url);
     }
     saveFavorites();
 }
@@ -130,10 +141,8 @@ function performSearch() {
         if (bo && !a.h) return false;
         if (query) {
             let matched = false;
-            // 搜索标题、作者、板块
             const metaData = (a.t + ' ' + a.a + ' ' + a.s).toLowerCase();
             if (metaData.includes(query)) matched = true;
-            // 搜索正文（如果已加载）
             if (!matched && a.h && state.fullTextReady) {
                 const yd = state.yearData[String(a.y)];
                 if (yd && yd[a.u] && yd[a.u].b) {
@@ -227,7 +236,10 @@ function toggleFavFromCard(btn, encUrl) {
 async function showArticle(encUrl) {
     const url = decodeURIComponent(encUrl);
     const a = state.meta.find(x => x.u === url);
-    if (!a) return;
+    if (!a) {
+        alert('未找到该文章');
+        return;
+    }
 
     state.currentArticleUrl = url;
     const ci = a.i <= 12 ? CN[a.i - 1] : a.i;
@@ -249,9 +261,18 @@ async function showArticle(encUrl) {
     } else {
         bodyEl.innerHTML = '<div class="article-loading"><div class="spinner"></div><div>加载正文...</div></div>';
 
-        // 确保年份数据已加载
+        document.getElementById('articleModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        // 确保年份数据已加载（含重试）
         if (!state.loadedYears.has(String(a.y))) {
-            await loadYearData(a.y);
+            const ok = await loadYearData(a.y);
+            if (!ok) {
+                bodyEl.innerHTML = `<div class="no-body">正文数据加载失败<br>
+                    <small>可能是网络不稳定，请重试</small><br>
+                    <button class="retry-btn" onclick="retryShowArticle('${encodeURIComponent(url)}')">重新加载</button></div>`;
+                return;
+            }
         }
 
         const yd = state.yearData[String(a.y)];
@@ -266,8 +287,10 @@ async function showArticle(encUrl) {
                 bodyEl.innerHTML = '<div class="no-body">正文内容为空</div>';
             }
         } else {
-            bodyEl.innerHTML = '<div class="no-body">无法加载正文</div>';
+            bodyEl.innerHTML = `<div class="no-body">未找到该文章的正文数据<br>
+                <small>URL: ${escHtml(url.substring(0, 60))}...</small></div>`;
         }
+        return;
     }
 
     // 底部链接
@@ -280,6 +303,44 @@ async function showArticle(encUrl) {
     document.body.style.overflow = 'hidden';
 }
 
+async function retryShowArticle(encUrl) {
+    const url = decodeURIComponent(encUrl);
+    const a = state.meta.find(x => x.u === url);
+    if (!a) return;
+
+    // 清除已加载状态强制重新加载
+    state.loadedYears.delete(String(a.y));
+    delete state.yearData[String(a.y)];
+
+    state.currentArticleUrl = url;
+    const bodyEl = document.getElementById('modalBody');
+    bodyEl.innerHTML = '<div class="article-loading"><div class="spinner"></div><div>重新加载中...</div></div>';
+
+    const ok = await loadYearData(a.y);
+    if (!ok) {
+        bodyEl.innerHTML = `<div class="no-body">加载仍然失败<br>
+            <small>请检查网络后重试，或访问原文链接</small><br>
+            <button class="retry-btn" onclick="retryShowArticle('${encodeURIComponent(url)}')">再次重试</button>
+            <a href="${a.u}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;color:var(--primary);">直接查看原文</a></div>`;
+        return;
+    }
+
+    const yd = state.yearData[String(a.y)];
+    if (yd && yd[url]) {
+        const bodyData = yd[url];
+        if (bodyData.bm) {
+            bodyEl.innerHTML = renderMarkdown(bodyData.bm);
+        } else if (bodyData.b) {
+            const paras = bodyData.b.split('\n\n');
+            bodyEl.innerHTML = paras.map(p => '<p>' + escHtml(p) + '</p>').join('');
+        } else {
+            bodyEl.innerHTML = '<div class="no-body">正文内容为空</div>';
+        }
+    } else {
+        bodyEl.innerHTML = '<div class="no-body">未找到该文章的正文数据</div>';
+    }
+}
+
 function toggleModalFav() {
     if (!state.currentArticleUrl) return;
     const url = state.currentArticleUrl;
@@ -288,9 +349,7 @@ function toggleModalFav() {
     const btn = document.getElementById('modalFavBtn');
     btn.classList.toggle('active', isFav);
     btn.innerHTML = svgStar(isFav);
-    // 如果在收藏视图，刷新列表
     if (state.currentMode === 'favorites') renderFavorites();
-    // 刷新搜索结果中的收藏状态
     if (state.currentMode === 'search') performSearch();
 }
 
@@ -316,9 +375,7 @@ function renderMarkdown(md) {
             html += '<p class="md-heading" style="font-size:18px;">' + escHtml(p.substring(2)) + '</p>';
         } else {
             let processed = escHtml(p);
-            // 加粗
             processed = processed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            // 整段加粗 → 小标题样式
             if (processed.startsWith('<strong>') && processed.endsWith('</strong>') &&
                 processed.indexOf('<strong>') === processed.lastIndexOf('<strong>')) {
                 html += '<p class="md-bold">' + processed + '</p>';
@@ -384,7 +441,6 @@ function renderSectionModalBody(articles, query) {
         return;
     }
 
-    // 按年份分组
     const yg = {};
     filtered.forEach(a => {
         if (!yg[a.y]) yg[a.y] = [];
@@ -435,12 +491,12 @@ function closeSectionModal() {
     document.body.style.overflow = '';
 }
 
-/* ===== 目录视图 ===== */
+/* ===== 目录视图（懒加载） ===== */
 function renderCatalog() {
     const container = document.getElementById('catalogContent');
-    if (container.children.length > 0) return; // 已渲染
+    if (state.catalogRendered) return;
 
-    // 构建目录结构
+    // 构建目录结构索引（仅元数据，不含正文）
     const catalog = {};
     state.meta.forEach(a => {
         if (!catalog[a.y]) catalog[a.y] = {};
@@ -449,24 +505,52 @@ function renderCatalog() {
         catalog[a.y][a.i][a.s].push(a);
     });
 
-    const years = Object.keys(catalog).sort((a, b) => parseInt(b) - parseInt(a));
-    let html = '';
-    const chevron = svgIcon('i-chevron');
+    // 存储到全局供展开时使用
+    state.catalogData = catalog;
 
+    const years = Object.keys(catalog).sort((a, b) => parseInt(b) - parseInt(a));
+    const chevron = svgIcon('i-chevron');
+    let html = '';
+
+    // 只渲染年份块，内容在展开时动态生成
     years.forEach(year => {
         const issues = Object.keys(catalog[year]).sort((a, b) => parseInt(a) - parseInt(b));
         let total = 0;
         issues.forEach(ik => total += Object.values(catalog[year][ik]).reduce((s, arr) => s + arr.length, 0));
 
         html += `<div class="year-block collapsed" id="yb-${year}">
-            <div class="yb-header" onclick="toggleEl('yb-${year}')">
+            <div class="yb-header" onclick="toggleYear('${year}')">
                 <h3>${year}年</h3>
                 <div class="yb-right">
                     <span class="yb-info">${issues.length}期 ｜ ${total}篇</span>
                     <span class="yb-toggle">${chevron}</span>
                 </div>
             </div>
-            <div class="yb-body">`;
+            <div class="yb-body" id="yb-body-${year}"></div>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+    state.catalogRendered = true;
+    // 默认展开第一年
+    toggleYear(years[0]);
+}
+
+function toggleYear(year) {
+    const block = document.getElementById(`yb-${year}`);
+    if (!block) return;
+    const body = document.getElementById(`yb-body-${year}`);
+    const wasCollapsed = block.classList.contains('collapsed');
+
+    block.classList.toggle('collapsed');
+
+    if (wasCollapsed && !state.catalogExpanded.has(`y-${year}`)) {
+        // 首次展开，渲染期数列表
+        state.catalogExpanded.add(`y-${year}`);
+        const catalog = state.catalogData;
+        const issues = Object.keys(catalog[year]).sort((a, b) => parseInt(a) - parseInt(b));
+        const chevron = svgIcon('i-chevron');
+        let html = '';
 
         issues.forEach(ik => {
             const secs = catalog[year][ik];
@@ -475,36 +559,55 @@ function renderCatalog() {
             const cin = parseInt(ik) <= 12 ? CN[parseInt(ik) - 1] : ik;
 
             html += `<div class="issue-row collapsed" id="ir-${year}-${ik}">
-                <div class="ir-header" onclick="toggleEl('ir-${year}-${ik}')">
+                <div class="ir-header" onclick="toggleIssue('${year}','${ik}')">
                     <span class="ir-title">${year}年第${cin}期</span>
                     <div class="ir-right">
                         <span class="ir-count">${issueTotal}篇</span>
                         <span class="ir-toggle">${chevron}</span>
                     </div>
                 </div>
-                <div class="ir-body">`;
-
-            secNames.forEach(sn => {
-                const arts = secs[sn];
-                html += `<div class="sec-group"><div class="sg-title">${escHtml(sn)} <span class="count">(${arts.length}篇)</span></div>`;
-                arts.forEach(a => {
-                    const au = a.a ? ` <span class="ai-author">｜${escHtml(a.a)}</span>` : '';
-                    const encUrl = encodeURIComponent(a.u);
-                    html += `<div class="art-item" onclick="showArticle('${encUrl}')">${escHtml(a.t)}${au}</div>`;
-                });
-                html += `</div>`;
-            });
-
-            html += `</div></div>`;
+                <div class="ir-body" id="ir-body-${year}-${ik}"></div>
+            </div>`;
         });
 
-        html += `</div></div>`;
-    });
+        body.innerHTML = html;
+    }
+}
 
-    container.innerHTML = html;
-    // 默认展开第一年
-    const first = container.querySelector('.year-block');
-    if (first) first.classList.remove('collapsed');
+function toggleIssue(year, ik) {
+    const row = document.getElementById(`ir-${year}-${ik}`);
+    if (!row) return;
+    const body = document.getElementById(`ir-body-${year}-${ik}`);
+    const wasCollapsed = row.classList.contains('collapsed');
+
+    row.classList.toggle('collapsed');
+
+    if (wasCollapsed && !state.catalogExpanded.has(`i-${year}-${ik}`)) {
+        // 首次展开，渲染文章列表
+        state.catalogExpanded.add(`i-${year}-${ik}`);
+        const catalog = state.catalogData;
+        const secs = catalog[year][ik];
+        const secNames = Object.keys(secs);
+        let html = '';
+
+        secNames.forEach(sn => {
+            const arts = secs[sn];
+            html += `<div class="sec-group"><div class="sg-title">${escHtml(sn)} <span class="count">(${arts.length}篇)</span></div>`;
+            arts.forEach(a => {
+                const au = a.a ? ` <span class="ai-author">｜${escHtml(a.a)}</span>` : '';
+                const encUrl = encodeURIComponent(a.u);
+                html += `<div class="art-item" onclick="showArticle('${encUrl}')">${escHtml(a.t)}${au}</div>`;
+            });
+            html += `</div>`;
+        });
+
+        body.innerHTML = html;
+
+        // 后台预加载该年份的正文数据
+        if (!state.loadedYears.has(String(year))) {
+            loadYearData(year);
+        }
+    }
 }
 
 /* ===== 收藏视图 ===== */
@@ -520,10 +623,9 @@ function renderFavorites() {
         return;
     }
 
-    // 获取收藏文章的元数据
     const favArticles = state.favorites
         .map(url => state.meta.find(a => a.u === url))
-        .filter(a => a); // 过滤掉已不存在的文章
+        .filter(a => a);
 
     let html = `<div class="fav-header">
         <div class="fh-count">${svgIcon('i-star-fill')} 已收藏 ${favArticles.length} 篇</div>
@@ -572,36 +674,26 @@ function clearFavorites() {
 function switchMode(mode) {
     state.currentMode = mode;
 
-    // 更新导航按钮
     document.querySelectorAll('.nav-tab, .bn-item').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === mode);
     });
 
-    // 切换视图
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     const viewMap = { search: 'searchView', section: 'sectionView', catalog: 'catalogView', favorites: 'favoritesView' };
     const view = document.getElementById(viewMap[mode]);
     if (view) view.classList.add('active');
 
-    // 搜索区只在搜索模式显示
     document.getElementById('searchSection').style.display = mode === 'search' ? '' : 'none';
 
-    // 渲染对应视图
     if (mode === 'search') performSearch();
     else if (mode === 'section') renderSections();
     else if (mode === 'catalog') renderCatalog();
     else if (mode === 'favorites') renderFavorites();
 
-    // 滚动到顶部
     window.scrollTo(0, 0);
 }
 
 /* ===== 工具函数 ===== */
-function toggleEl(id) {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle('collapsed');
-}
-
 function escHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -636,35 +728,29 @@ function debounce(fn, delay) {
 
 /* ===== 初始化 ===== */
 async function init() {
-    // 加载收藏
     loadFavorites();
     updateFavBadges();
 
-    // 绑定导航事件
     document.querySelectorAll('.nav-tab, .bn-item').forEach(btn => {
         btn.addEventListener('click', () => switchMode(btn.dataset.mode));
     });
 
-    // 搜索输入（防抖）
     const debouncedSearch = debounce(performSearch, 250);
     document.getElementById('searchInput').addEventListener('input', e => {
         document.getElementById('searchClear').style.display = e.target.value ? 'flex' : 'none';
         debouncedSearch();
     });
 
-    // 清除搜索
     document.getElementById('searchClear').addEventListener('click', () => {
         document.getElementById('searchInput').value = '';
         document.getElementById('searchClear').style.display = 'none';
         performSearch();
     });
 
-    // 筛选器
     document.getElementById('filterYear').addEventListener('change', performSearch);
     document.getElementById('filterSection').addEventListener('change', performSearch);
     document.getElementById('bodyOnly').addEventListener('change', performSearch);
 
-    // 弹窗背景关闭
     document.getElementById('articleModal').addEventListener('click', e => {
         if (e.target.id === 'articleModal') closeModal();
     });
@@ -672,7 +758,6 @@ async function init() {
         if (e.target.id === 'sectionModal') closeSectionModal();
     });
 
-    // ESC 关闭弹窗
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
             closeModal();
@@ -680,7 +765,6 @@ async function init() {
         }
     });
 
-    // 加载元数据
     const ok = await loadMeta();
     if (!ok) {
         document.getElementById('searchResults').innerHTML =
@@ -688,7 +772,6 @@ async function init() {
         return;
     }
 
-    // 填充筛选器
     const yearCounter = {};
     const sectionCounter = {};
     state.meta.forEach(a => {
@@ -708,14 +791,10 @@ async function init() {
             fs.innerHTML += `<option value="${escHtml(name)}">${escHtml(name)} (${count}篇)</option>`;
         });
 
-    // 初始搜索（显示全部）
     performSearch();
-
-    // 后台加载全文数据
     loadAllYearsBackground();
 }
 
-// 启动
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {

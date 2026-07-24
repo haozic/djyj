@@ -618,6 +618,19 @@ button { font-family: inherit; }
     font-size: 14px;
 }
 .modal-body .no-body small { display: block; margin-top: 6px; font-size: 12px; }
+.modal-body .retry-btn {
+    margin-top: 16px;
+    padding: 8px 20px;
+    border: 1px solid var(--primary-light);
+    border-radius: var(--radius-sm);
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    transition: background 0.2s var(--ease);
+}
+.modal-body .retry-btn:hover { background: var(--primary-dark); }
 .modal-body .article-loading {
     text-align: center;
     padding: 48px 0;

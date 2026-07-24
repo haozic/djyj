@@ -16,6 +16,16 @@ const state = {
 const CN = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
 const FAV_KEY = 'djyj_favorites';
 
+/* ===== SVG 图标辅助 ===== */
+function svgStar(filled) {
+    const id = filled ? 'i-star-fill' : 'i-star';
+    return `<svg class="icon"><use href="#${id}"/></svg>`;
+}
+
+function svgIcon(name) {
+    return `<svg class="icon"><use href="#${name}"/></svg>`;
+}
+
 /* ===== 数据加载 ===== */
 async function loadMeta() {
     try {
@@ -173,18 +183,20 @@ function performSearch() {
                     }
                 }
             }
-            if (!snippet) snippet = '<span style="color:#ccc;">无正文</span>';
+            if (!snippet) snippet = '<span style="color:var(--text-3);">无正文</span>';
         } else {
-            snippet = a.h ? '点击查看全文' : '<span style="color:#ccc;">无全文</span>';
+            snippet = a.h ? '点击查看全文' : '<span style="color:var(--text-3);">无全文</span>';
         }
 
         const ci = a.i <= 12 ? CN[a.i - 1] : a.i;
-        const favClass = isFavorite(a.u) ? 'active' : '';
-        const favIcon = isFavorite(a.u) ? '★' : '☆';
+        const isFav = isFavorite(a.u);
+        const favClass = isFav ? 'active' : '';
+        const favIcon = svgStar(isFav);
         const noBodyTag = a.h ? '' : '<span class="rc-tag no-body">无全文</span>';
+        const encUrl = encodeURIComponent(a.u);
 
-        html += `<div class="result-card" onclick="showArticle('${encodeURIComponent(a.u)}')">
-            <button class="rc-fav-btn ${favClass}" onclick="event.stopPropagation(); toggleFavFromCard(this, '${encodeURIComponent(a.u)}')">${favIcon}</button>
+        html += `<div class="result-card" onclick="showArticle('${encUrl}')">
+            <button class="rc-fav-btn ${favClass}" onclick="event.stopPropagation(); toggleFavFromCard(this, '${encUrl}')">${favIcon}</button>
             <div class="rc-title">${titleHtml}</div>
             <div class="rc-meta">
                 <span class="rc-tag">${a.y}年第${ci}期</span>
@@ -208,7 +220,7 @@ function toggleFavFromCard(btn, encUrl) {
     toggleFavorite(url);
     const active = isFavorite(url);
     btn.classList.toggle('active', active);
-    btn.textContent = active ? '★' : '☆';
+    btn.innerHTML = svgStar(active);
 }
 
 /* ===== 文章详情 ===== */
@@ -228,7 +240,7 @@ async function showArticle(encUrl) {
     const favBtn = document.getElementById('modalFavBtn');
     const isFav = isFavorite(url);
     favBtn.classList.toggle('active', isFav);
-    favBtn.textContent = isFav ? '★' : '☆';
+    favBtn.innerHTML = svgStar(isFav);
 
     const bodyEl = document.getElementById('modalBody');
 
@@ -261,7 +273,7 @@ async function showArticle(encUrl) {
     // 底部链接
     const footer = document.getElementById('modalFooter');
     footer.innerHTML = a.u
-        ? `<a href="${a.u}" target="_blank" rel="noopener">查看原文 ↗</a>`
+        ? `<a href="${a.u}" target="_blank" rel="noopener">查看原文 ${svgIcon('i-external')}</a>`
         : '';
 
     document.getElementById('articleModal').classList.add('active');
@@ -275,7 +287,7 @@ function toggleModalFav() {
     const isFav = isFavorite(url);
     const btn = document.getElementById('modalFavBtn');
     btn.classList.toggle('active', isFav);
-    btn.textContent = isFav ? '★' : '☆';
+    btn.innerHTML = svgStar(isFav);
     // 如果在收藏视图，刷新列表
     if (state.currentMode === 'favorites') renderFavorites();
     // 刷新搜索结果中的收藏状态
@@ -368,7 +380,7 @@ function renderSectionModalBody(articles, query) {
     }
 
     if (filtered.length === 0) {
-        body.innerHTML = '<div style="padding:40px;text-align:center;color:#999;">未找到匹配文章</div>';
+        body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3);">未找到匹配文章</div>';
         return;
     }
 
@@ -439,6 +451,7 @@ function renderCatalog() {
 
     const years = Object.keys(catalog).sort((a, b) => parseInt(b) - parseInt(a));
     let html = '';
+    const chevron = svgIcon('i-chevron');
 
     years.forEach(year => {
         const issues = Object.keys(catalog[year]).sort((a, b) => parseInt(a) - parseInt(b));
@@ -448,9 +461,9 @@ function renderCatalog() {
         html += `<div class="year-block collapsed" id="yb-${year}">
             <div class="yb-header" onclick="toggleEl('yb-${year}')">
                 <h3>${year}年</h3>
-                <div style="display:flex;align-items:center;gap:10px;">
+                <div class="yb-right">
                     <span class="yb-info">${issues.length}期 ｜ ${total}篇</span>
-                    <span class="yb-toggle">▼</span>
+                    <span class="yb-toggle">${chevron}</span>
                 </div>
             </div>
             <div class="yb-body">`;
@@ -464,9 +477,9 @@ function renderCatalog() {
             html += `<div class="issue-row collapsed" id="ir-${year}-${ik}">
                 <div class="ir-header" onclick="toggleEl('ir-${year}-${ik}')">
                     <span class="ir-title">${year}年第${cin}期</span>
-                    <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="ir-right">
                         <span class="ir-count">${issueTotal}篇</span>
-                        <span class="ir-toggle">▼</span>
+                        <span class="ir-toggle">${chevron}</span>
                     </div>
                 </div>
                 <div class="ir-body">`;
@@ -500,9 +513,9 @@ function renderFavorites() {
 
     if (state.favorites.length === 0) {
         container.innerHTML = `<div class="fav-empty">
-            <div class="icon">⭐</div>
-            <div>还没有收藏文章</div>
-            <div style="font-size:13px;margin-top:8px;">在文章详情中点击 ☆ 即可收藏</div>
+            <div class="fav-empty-icon">${svgIcon('i-bookmark')}</div>
+            <div class="fav-empty-text">还没有收藏文章</div>
+            <div class="fav-empty-hint">在文章详情中点击星标即可收藏</div>
         </div>`;
         return;
     }
@@ -513,7 +526,7 @@ function renderFavorites() {
         .filter(a => a); // 过滤掉已不存在的文章
 
     let html = `<div class="fav-header">
-        <div class="fh-count">⭐ 已收藏 ${favArticles.length} 篇</div>
+        <div class="fh-count">${svgIcon('i-star-fill')} 已收藏 ${favArticles.length} 篇</div>
         <div class="fh-actions">
             <button onclick="exportFavorites()">导出</button>
             <button onclick="clearFavorites()">清空</button>
@@ -524,7 +537,7 @@ function renderFavorites() {
         const ci = a.i <= 12 ? CN[a.i - 1] : a.i;
         const encUrl = encodeURIComponent(a.u);
         html += `<div class="result-card" onclick="showArticle('${encUrl}')">
-            <button class="rc-fav-btn active" onclick="event.stopPropagation(); toggleFavFromCard(this, '${encUrl}')">★</button>
+            <button class="rc-fav-btn active" onclick="event.stopPropagation(); toggleFavFromCard(this, '${encUrl}')">${svgStar(true)}</button>
             <div class="rc-title">${escHtml(a.t)}</div>
             <div class="rc-meta">
                 <span class="rc-tag">${a.y}年第${ci}期</span>

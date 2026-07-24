@@ -3,13 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-<meta name="theme-color" content="#dc2626">
+<meta name="theme-color" content="#7f1d1d">
 <meta name="description" content="《党建研究》杂志全文检索系统，覆盖2020-2026年全期">
 <title>《党建研究》全文检索</title>
 <link rel="stylesheet" href="assets/css/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237f1d1d' stroke-width='2'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg>">
 </head>
 <body>
+
+<!-- SVG icon definitions -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none;">
+<symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+<symbol id="i-star-fill" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+<symbol id="i-bookmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+</svg>
 
 <!-- 头部 -->
 <header class="app-header">
@@ -20,18 +34,18 @@
 
 <!-- 桌面端导航 -->
 <nav class="nav-tabs desktop-only">
-    <button class="nav-tab active" data-mode="search">🔍 搜索</button>
-    <button class="nav-tab" data-mode="section">📊 板块</button>
-    <button class="nav-tab" data-mode="catalog">📋 目录</button>
-    <button class="nav-tab" data-mode="favorites">⭐ 收藏 <span class="fav-badge" id="favBadgeTop">0</span></button>
+    <button class="nav-tab active" data-mode="search"><svg class="icon"><use href="#i-search"/></svg>搜索</button>
+    <button class="nav-tab" data-mode="section"><svg class="icon"><use href="#i-grid"/></svg>板块</button>
+    <button class="nav-tab" data-mode="catalog"><svg class="icon"><use href="#i-list"/></svg>目录</button>
+    <button class="nav-tab" data-mode="favorites"><svg class="icon"><use href="#i-bookmark"/></svg>收藏 <span class="fav-badge" id="favBadgeTop">0</span></button>
 </nav>
 
 <!-- 搜索区 -->
 <section class="search-section" id="searchSection">
     <div class="search-box">
-        <span class="search-icon">🔍</span>
+        <svg class="icon search-icon"><use href="#i-search"/></svg>
         <input type="text" id="searchInput" placeholder="搜索标题、作者或正文..." autocomplete="off">
-        <button class="search-clear" id="searchClear" style="display:none;">✕</button>
+        <button class="search-clear" id="searchClear" style="display:none;"><svg class="icon"><use href="#i-close"/></svg></button>
     </div>
     <div class="filters" id="filters">
         <select id="filterYear"><option value="">全部年份</option></select>
@@ -67,16 +81,16 @@
 <!-- 底部导航（移动端） -->
 <nav class="bottom-nav mobile-only">
     <button class="bn-item active" data-mode="search">
-        <span class="bn-icon">🔍</span><span class="bn-label">搜索</span>
+        <svg class="icon"><use href="#i-search"/></svg><span class="bn-label">搜索</span>
     </button>
     <button class="bn-item" data-mode="section">
-        <span class="bn-icon">📊</span><span class="bn-label">板块</span>
+        <svg class="icon"><use href="#i-grid"/></svg><span class="bn-label">板块</span>
     </button>
     <button class="bn-item" data-mode="catalog">
-        <span class="bn-icon">📋</span><span class="bn-label">目录</span>
+        <svg class="icon"><use href="#i-list"/></svg><span class="bn-label">目录</span>
     </button>
     <button class="bn-item" data-mode="favorites">
-        <span class="bn-icon">⭐</span><span class="bn-label">收藏</span>
+        <svg class="icon"><use href="#i-bookmark"/></svg><span class="bn-label">收藏</span>
         <span class="fav-badge" id="favBadgeBottom">0</span>
     </button>
 </nav>
@@ -85,8 +99,8 @@
 <div class="modal-overlay" id="articleModal">
     <div class="modal-box">
         <div class="modal-header">
-            <button class="modal-close" onclick="closeModal()">✕</button>
-            <button class="modal-fav-btn" id="modalFavBtn" onclick="toggleModalFav()">☆</button>
+            <button class="modal-fav-btn" id="modalFavBtn" onclick="toggleModalFav()"><svg class="icon"><use href="#i-star"/></svg></button>
+            <button class="modal-close" onclick="closeModal()"><svg class="icon"><use href="#i-close"/></svg></button>
             <h2 id="modalTitle"></h2>
             <div class="modal-meta" id="modalMeta"></div>
         </div>
@@ -99,7 +113,7 @@
 <div class="modal-overlay" id="sectionModal">
     <div class="modal-box">
         <div class="modal-header">
-            <button class="modal-close" onclick="closeSectionModal()">✕</button>
+            <button class="modal-close" onclick="closeSectionModal()"><svg class="icon"><use href="#i-close"/></svg></button>
             <h2 id="sectionModalName"></h2>
             <div class="modal-meta" id="sectionModalCount"></div>
         </div>

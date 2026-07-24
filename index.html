@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+<meta name="theme-color" content="#dc2626">
+<meta name="description" content="《党建研究》杂志全文检索系统，覆盖2020-2026年全期">
+<title>《党建研究》全文检索</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+</head>
+<body>
+
+<!-- 头部 -->
+<header class="app-header">
+    <h1>《党建研究》全文检索</h1>
+    <p class="app-subtitle">2020-2026 全期 · <span id="totalCount">-</span> 篇文章</p>
+    <div class="search-status" id="searchStatus">加载中...</div>
+</header>
+
+<!-- 桌面端导航 -->
+<nav class="nav-tabs desktop-only">
+    <button class="nav-tab active" data-mode="search">🔍 搜索</button>
+    <button class="nav-tab" data-mode="section">📊 板块</button>
+    <button class="nav-tab" data-mode="catalog">📋 目录</button>
+    <button class="nav-tab" data-mode="favorites">⭐ 收藏 <span class="fav-badge" id="favBadgeTop">0</span></button>
+</nav>
+
+<!-- 搜索区 -->
+<section class="search-section" id="searchSection">
+    <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="搜索标题、作者或正文..." autocomplete="off">
+        <button class="search-clear" id="searchClear" style="display:none;">✕</button>
+    </div>
+    <div class="filters" id="filters">
+        <select id="filterYear"><option value="">全部年份</option></select>
+        <select id="filterSection"><option value="">全部板块</option></select>
+        <label class="filter-check"><input type="checkbox" id="bodyOnly"> 仅看有全文</label>
+    </div>
+    <div class="result-info" id="resultInfo"></div>
+</section>
+
+<!-- 内容区 -->
+<main class="content">
+    <!-- 搜索结果 -->
+    <div class="view active" id="searchView">
+        <div id="searchResults" class="results-list"></div>
+    </div>
+
+    <!-- 板块分类 -->
+    <div class="view" id="sectionView">
+        <div id="sectionContent" class="section-list"></div>
+    </div>
+
+    <!-- 文章目录 -->
+    <div class="view" id="catalogView">
+        <div id="catalogContent" class="catalog-list"></div>
+    </div>
+
+    <!-- 我的收藏 -->
+    <div class="view" id="favoritesView">
+        <div id="favoritesContent" class="favorites-list"></div>
+    </div>
+</main>
+
+<!-- 底部导航（移动端） -->
+<nav class="bottom-nav mobile-only">
+    <button class="bn-item active" data-mode="search">
+        <span class="bn-icon">🔍</span><span class="bn-label">搜索</span>
+    </button>
+    <button class="bn-item" data-mode="section">
+        <span class="bn-icon">📊</span><span class="bn-label">板块</span>
+    </button>
+    <button class="bn-item" data-mode="catalog">
+        <span class="bn-icon">📋</span><span class="bn-label">目录</span>
+    </button>
+    <button class="bn-item" data-mode="favorites">
+        <span class="bn-icon">⭐</span><span class="bn-label">收藏</span>
+        <span class="fav-badge" id="favBadgeBottom">0</span>
+    </button>
+</nav>
+
+<!-- 文章详情弹窗 -->
+<div class="modal-overlay" id="articleModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <button class="modal-fav-btn" id="modalFavBtn" onclick="toggleModalFav()">☆</button>
+            <h2 id="modalTitle"></h2>
+            <div class="modal-meta" id="modalMeta"></div>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-footer" id="modalFooter"></div>
+    </div>
+</div>
+
+<!-- 板块文章弹窗 -->
+<div class="modal-overlay" id="sectionModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <button class="modal-close" onclick="closeSectionModal()">✕</button>
+            <h2 id="sectionModalName"></h2>
+            <div class="modal-meta" id="sectionModalCount"></div>
+        </div>
+        <div class="modal-search-bar">
+            <input type="text" id="sectionModalSearch" placeholder="在板块内搜索..." oninput="filterSectionModal()">
+        </div>
+        <div class="modal-body" id="sectionModalBody"></div>
+    </div>
+</div>
+
+<script src="assets/js/app.js"></script>
+</body>
+</html>

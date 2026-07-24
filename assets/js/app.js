@@ -7,12 +7,13 @@ const state = {
     loadedYears: new Set(),
     loadingYears: new Set(),
     favorites: [],         // 收藏的URL列表
-    currentMode: 'search',
+    currentMode: 'section', // 当前标签：section/catalog/favorites
     currentArticleUrl: null,
     searchTimer: null,
     fullTextReady: false,
     catalogRendered: false,
-    catalogExpanded: new Set(), // 记录已展开渲染的年份/期数
+    catalogExpanded: new Set(),
+    isSearching: false,    // 是否正在显示搜索结果
 };
 
 const CN = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
@@ -70,7 +71,6 @@ async function loadAllYearsBackground() {
     status.className = 'search-status loading';
     status.textContent = '全文搜索加载中...';
 
-    // 逐个加载，避免手机网络并行请求过多导致失败
     for (const y of years) {
         await loadYearData(y);
     }
@@ -79,7 +79,6 @@ async function loadAllYearsBackground() {
     status.className = 'search-status ready';
     status.textContent = '全文搜索就绪';
 
-    // 重新搜索（如果有查询）
     const q = document.getElementById('searchInput').value.trim();
     if (q) performSearch();
 }
@@ -128,7 +127,29 @@ function updateFavBadges() {
 
 /* ===== 搜索 ===== */
 function performSearch() {
-    const query = document.getElementById('searchInput').value.trim().toLowerCase();
+    const input = document.getElementById('searchInput');
+    const query = input.value.trim().toLowerCase();
+    const hasQuery = query.length > 0;
+
+    // 有搜索词时自动切换到搜索视图
+    if (hasQuery && !state.isSearching) {
+        state.isSearching = true;
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById('searchView').classList.add('active');
+    } else if (!hasQuery && state.isSearching) {
+        // 清空搜索时返回当前标签
+        state.isSearching = false;
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        const viewMap = { section: 'sectionView', catalog: 'catalogView', favorites: 'favoritesView' };
+        const view = document.getElementById(viewMap[state.currentMode]);
+        if (view) view.classList.add('active');
+        document.getElementById('resultInfo').textContent = '';
+        document.getElementById('searchResults').innerHTML = '';
+        return;
+    }
+
+    if (!hasQuery) return;
+
     const fy = document.getElementById('filterYear').value;
     const fs = document.getElementById('filterSection').value;
     const bo = document.getElementById('bodyOnly').checked;
@@ -154,7 +175,7 @@ function performSearch() {
         return true;
     });
 
-    const qDisplay = document.getElementById('searchInput').value.trim();
+    const qDisplay = input.value.trim();
     let infoText = `共 ${results.length} 篇文章`;
     if (qDisplay) infoText += `（关键词："${qDisplay}"）`;
     if (!state.fullTextReady && query) infoText += ' · 全文搜索加载中，当前仅搜索标题/作者';
@@ -232,7 +253,7 @@ function toggleFavFromCard(btn, encUrl) {
     btn.innerHTML = svgStar(active);
 }
 
-/* ===== 文章详情 ===== */
+/* ===== 文章详情（独立页面 + History API） ===== */
 async function showArticle(encUrl) {
     const url = decodeURIComponent(encUrl);
     const a = state.meta.find(x => x.u === url);
@@ -244,88 +265,60 @@ async function showArticle(encUrl) {
     state.currentArticleUrl = url;
     const ci = a.i <= 12 ? CN[a.i - 1] : a.i;
 
-    document.getElementById('modalTitle').textContent = a.t;
-    document.getElementById('modalMeta').innerHTML =
+    // 填充文章页头
+    document.getElementById('articleTitle').textContent = a.t;
+    document.getElementById('articleMeta').innerHTML =
         `${a.y}年第${ci}期 ｜ ${escHtml(a.s)}${a.a ? ' ｜ ' + escHtml(a.a) : ''}`;
 
+    // 原文链接
+    const origLink = document.getElementById('articleOrigLink');
+    if (a.u) {
+        origLink.href = a.u;
+        origLink.style.display = '';
+    } else {
+        origLink.style.display = 'none';
+    }
+
     // 收藏按钮状态
-    const favBtn = document.getElementById('modalFavBtn');
+    const favBtn = document.getElementById('articleFavBtn');
     const isFav = isFavorite(url);
     favBtn.classList.toggle('active', isFav);
     favBtn.innerHTML = svgStar(isFav);
 
-    const bodyEl = document.getElementById('modalBody');
+    const bodyEl = document.getElementById('articleBody');
+
+    // 切换到文章页面
+    document.body.classList.add('article-active');
+    window.scrollTo(0, 0);
+
+    // History API：压入历史记录
+    if (!history.state || history.state.article !== encUrl) {
+        history.pushState({ article: encUrl }, '', `#a=${encUrl}`);
+    }
 
     if (!a.h) {
         bodyEl.innerHTML = '<div class="no-body">该文章无全文内容<br><small>可能为新闻汇总条目或专刊文献</small></div>';
-    } else {
-        bodyEl.innerHTML = '<div class="article-loading"><div class="spinner"></div><div>加载正文...</div></div>';
-
-        document.getElementById('articleModal').classList.add('active');
-        document.body.style.overflow = 'hidden';
-
-        // 确保年份数据已加载（含重试）
-        if (!state.loadedYears.has(String(a.y))) {
-            const ok = await loadYearData(a.y);
-            if (!ok) {
-                bodyEl.innerHTML = `<div class="no-body">正文数据加载失败<br>
-                    <small>可能是网络不稳定，请重试</small><br>
-                    <button class="retry-btn" onclick="retryShowArticle('${encodeURIComponent(url)}')">重新加载</button></div>`;
-                return;
-            }
-        }
-
-        const yd = state.yearData[String(a.y)];
-        if (yd && yd[url]) {
-            const bodyData = yd[url];
-            if (bodyData.bm) {
-                bodyEl.innerHTML = renderMarkdown(bodyData.bm);
-            } else if (bodyData.b) {
-                const paras = bodyData.b.split('\n\n');
-                bodyEl.innerHTML = paras.map(p => '<p>' + escHtml(p) + '</p>').join('');
-            } else {
-                bodyEl.innerHTML = '<div class="no-body">正文内容为空</div>';
-            }
-        } else {
-            bodyEl.innerHTML = `<div class="no-body">未找到该文章的正文数据<br>
-                <small>URL: ${escHtml(url.substring(0, 60))}...</small></div>`;
-        }
         return;
     }
 
-    // 底部链接
-    const footer = document.getElementById('modalFooter');
-    footer.innerHTML = a.u
-        ? `<a href="${a.u}" target="_blank" rel="noopener">查看原文 ${svgIcon('i-external')}</a>`
-        : '';
+    bodyEl.innerHTML = '<div class="article-loading"><div class="spinner"></div><div>加载正文...</div></div>';
 
-    document.getElementById('articleModal').classList.add('active');
-    document.body.style.overflow = 'hidden';
+    // 确保年份数据已加载（含重试）
+    if (!state.loadedYears.has(String(a.y))) {
+        const ok = await loadYearData(a.y);
+        if (!ok) {
+            bodyEl.innerHTML = `<div class="no-body">正文数据加载失败<br>
+                <small>可能是网络不稳定，请重试</small><br>
+                <button class="retry-btn" onclick="retryShowArticle('${encodeURIComponent(url)}')">重新加载</button></div>`;
+            return;
+        }
+    }
+
+    renderArticleBody(url, a.y, bodyEl);
 }
 
-async function retryShowArticle(encUrl) {
-    const url = decodeURIComponent(encUrl);
-    const a = state.meta.find(x => x.u === url);
-    if (!a) return;
-
-    // 清除已加载状态强制重新加载
-    state.loadedYears.delete(String(a.y));
-    delete state.yearData[String(a.y)];
-
-    state.currentArticleUrl = url;
-    const bodyEl = document.getElementById('modalBody');
-    bodyEl.innerHTML = '<div class="article-loading"><div class="spinner"></div><div>重新加载中...</div></div>';
-
-    const ok = await loadYearData(a.y);
-    if (!ok) {
-        bodyEl.innerHTML = `<div class="no-body">加载仍然失败<br>
-            <small>请检查网络后重试，或访问原文链接</small><br>
-            <button class="retry-btn" onclick="retryShowArticle('${encodeURIComponent(url)}')">再次重试</button>
-            <a href="${a.u}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;color:var(--primary);">直接查看原文</a></div>`;
-        return;
-    }
-
-    const yd = state.yearData[String(a.y)];
+function renderArticleBody(url, year, bodyEl) {
+    const yd = state.yearData[String(year)];
     if (yd && yd[url]) {
         const bodyData = yd[url];
         if (bodyData.bm) {
@@ -337,26 +330,66 @@ async function retryShowArticle(encUrl) {
             bodyEl.innerHTML = '<div class="no-body">正文内容为空</div>';
         }
     } else {
-        bodyEl.innerHTML = '<div class="no-body">未找到该文章的正文数据</div>';
+        bodyEl.innerHTML = `<div class="no-body">未找到该文章的正文数据<br>
+            <small>URL: ${escHtml(url.substring(0, 60))}...</small></div>`;
     }
 }
 
-function toggleModalFav() {
+async function retryShowArticle(encUrl) {
+    const url = decodeURIComponent(encUrl);
+    const a = state.meta.find(x => x.u === url);
+    if (!a) return;
+
+    // 清除已加载状态强制重新加载
+    state.loadedYears.delete(String(a.y));
+    delete state.yearData[String(a.y)];
+
+    const bodyEl = document.getElementById('articleBody');
+    bodyEl.innerHTML = '<div class="article-loading"><div class="spinner"></div><div>重新加载中...</div></div>';
+
+    const ok = await loadYearData(a.y);
+    if (!ok) {
+        bodyEl.innerHTML = `<div class="no-body">加载仍然失败<br>
+            <small>请检查网络后重试，或访问原文链接</small><br>
+            <button class="retry-btn" onclick="retryShowArticle('${encodeURIComponent(url)}')">再次重试</button>
+            <a href="${a.u}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;color:var(--primary);">直接查看原文</a></div>`;
+        return;
+    }
+
+    renderArticleBody(url, a.y, bodyEl);
+}
+
+function toggleArticleFav() {
     if (!state.currentArticleUrl) return;
     const url = state.currentArticleUrl;
     toggleFavorite(url);
     const isFav = isFavorite(url);
-    const btn = document.getElementById('modalFavBtn');
+    const btn = document.getElementById('articleFavBtn');
     btn.classList.toggle('active', isFav);
     btn.innerHTML = svgStar(isFav);
-    if (state.currentMode === 'favorites') renderFavorites();
-    if (state.currentMode === 'search') performSearch();
+    if (state.currentMode === 'favorites' && !state.isSearching) renderFavorites();
+    if (state.isSearching) performSearch();
 }
 
-function closeModal() {
-    document.getElementById('articleModal').classList.remove('active');
-    document.body.style.overflow = '';
+function goBack() {
+    if (document.body.classList.contains('article-active')) {
+        history.back();
+    }
+}
+
+function closeArticlePage() {
+    document.body.classList.remove('article-active');
     state.currentArticleUrl = null;
+    document.getElementById('readingProgress').style.width = '0%';
+}
+
+/* ===== 阅读进度条 ===== */
+function updateReadingProgress() {
+    if (!document.body.classList.contains('article-active')) return;
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    document.getElementById('readingProgress').style.width = pct + '%';
 }
 
 /* ===== Markdown 渲染 ===== */
@@ -496,7 +529,6 @@ function renderCatalog() {
     const container = document.getElementById('catalogContent');
     if (state.catalogRendered) return;
 
-    // 构建目录结构索引（仅元数据，不含正文）
     const catalog = {};
     state.meta.forEach(a => {
         if (!catalog[a.y]) catalog[a.y] = {};
@@ -505,14 +537,12 @@ function renderCatalog() {
         catalog[a.y][a.i][a.s].push(a);
     });
 
-    // 存储到全局供展开时使用
     state.catalogData = catalog;
 
     const years = Object.keys(catalog).sort((a, b) => parseInt(b) - parseInt(a));
     const chevron = svgIcon('i-chevron');
     let html = '';
 
-    // 只渲染年份块，内容在展开时动态生成
     years.forEach(year => {
         const issues = Object.keys(catalog[year]).sort((a, b) => parseInt(a) - parseInt(b));
         let total = 0;
@@ -532,8 +562,7 @@ function renderCatalog() {
 
     container.innerHTML = html;
     state.catalogRendered = true;
-    // 默认展开第一年
-    toggleYear(years[0]);
+    if (years.length > 0) toggleYear(years[0]);
 }
 
 function toggleYear(year) {
@@ -545,7 +574,6 @@ function toggleYear(year) {
     block.classList.toggle('collapsed');
 
     if (wasCollapsed && !state.catalogExpanded.has(`y-${year}`)) {
-        // 首次展开，渲染期数列表
         state.catalogExpanded.add(`y-${year}`);
         const catalog = state.catalogData;
         const issues = Object.keys(catalog[year]).sort((a, b) => parseInt(a) - parseInt(b));
@@ -583,7 +611,6 @@ function toggleIssue(year, ik) {
     row.classList.toggle('collapsed');
 
     if (wasCollapsed && !state.catalogExpanded.has(`i-${year}-${ik}`)) {
-        // 首次展开，渲染文章列表
         state.catalogExpanded.add(`i-${year}-${ik}`);
         const catalog = state.catalogData;
         const secs = catalog[year][ik];
@@ -603,7 +630,6 @@ function toggleIssue(year, ik) {
 
         body.innerHTML = html;
 
-        // 后台预加载该年份的正文数据
         if (!state.loadedYears.has(String(year))) {
             loadYearData(year);
         }
@@ -670,23 +696,27 @@ function clearFavorites() {
     renderFavorites();
 }
 
-/* ===== 导航 ===== */
+/* ===== 导航（3标签 + 搜索自动切换） ===== */
 function switchMode(mode) {
     state.currentMode = mode;
+    state.isSearching = false;
 
+    // 清空搜索框
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchClear').style.display = 'none';
+
+    // 更新标签激活状态
     document.querySelectorAll('.nav-tab, .bn-item').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === mode);
     });
 
+    // 切换视图
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    const viewMap = { search: 'searchView', section: 'sectionView', catalog: 'catalogView', favorites: 'favoritesView' };
+    const viewMap = { section: 'sectionView', catalog: 'catalogView', favorites: 'favoritesView' };
     const view = document.getElementById(viewMap[mode]);
     if (view) view.classList.add('active');
 
-    document.getElementById('searchSection').style.display = mode === 'search' ? '' : 'none';
-
-    if (mode === 'search') performSearch();
-    else if (mode === 'section') renderSections();
+    if (mode === 'section') renderSections();
     else if (mode === 'catalog') renderCatalog();
     else if (mode === 'favorites') renderFavorites();
 
@@ -731,47 +761,65 @@ async function init() {
     loadFavorites();
     updateFavBadges();
 
+    // 标签导航
     document.querySelectorAll('.nav-tab, .bn-item').forEach(btn => {
         btn.addEventListener('click', () => switchMode(btn.dataset.mode));
     });
 
+    // 搜索
     const debouncedSearch = debounce(performSearch, 250);
-    document.getElementById('searchInput').addEventListener('input', e => {
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', e => {
         document.getElementById('searchClear').style.display = e.target.value ? 'flex' : 'none';
         debouncedSearch();
     });
 
     document.getElementById('searchClear').addEventListener('click', () => {
-        document.getElementById('searchInput').value = '';
+        searchInput.value = '';
         document.getElementById('searchClear').style.display = 'none';
         performSearch();
+        searchInput.focus();
     });
 
     document.getElementById('filterYear').addEventListener('change', performSearch);
     document.getElementById('filterSection').addEventListener('change', performSearch);
     document.getElementById('bodyOnly').addEventListener('change', performSearch);
 
-    document.getElementById('articleModal').addEventListener('click', e => {
-        if (e.target.id === 'articleModal') closeModal();
-    });
+    // 板块弹窗背景点击关闭
     document.getElementById('sectionModal').addEventListener('click', e => {
         if (e.target.id === 'sectionModal') closeSectionModal();
     });
 
+    // 键盘快捷键
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
-            closeModal();
-            closeSectionModal();
+            if (document.body.classList.contains('article-active')) {
+                goBack();
+            } else {
+                closeSectionModal();
+            }
         }
     });
 
+    // History API：浏览器后退
+    window.addEventListener('popstate', e => {
+        if (document.body.classList.contains('article-active')) {
+            closeArticlePage();
+        }
+    });
+
+    // 阅读进度条
+    window.addEventListener('scroll', updateReadingProgress, { passive: true });
+
+    // 加载数据
     const ok = await loadMeta();
     if (!ok) {
-        document.getElementById('searchResults').innerHTML =
+        document.getElementById('sectionContent').innerHTML =
             '<div class="loading"><div>数据加载失败，请刷新重试</div></div>';
         return;
     }
 
+    // 填充筛选器
     const yearCounter = {};
     const sectionCounter = {};
     state.meta.forEach(a => {
@@ -791,8 +839,17 @@ async function init() {
             fs.innerHTML += `<option value="${escHtml(name)}">${escHtml(name)} (${count}篇)</option>`;
         });
 
-    performSearch();
+    // 默认显示板块视图
+    renderSections();
     loadAllYearsBackground();
+
+    // 支持直接通过 URL 打开文章
+    if (location.hash.startsWith('#a=')) {
+        const encUrl = location.hash.substring(3);
+        if (encUrl) {
+            setTimeout(() => showArticle(encUrl), 300);
+        }
+    }
 }
 
 if (document.readyState === 'loading') {

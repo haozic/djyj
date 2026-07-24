@@ -23,8 +23,11 @@
 <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
 <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></symbol>
 <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+<symbol id="i-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
 </svg>
 
+<!-- ===== 主应用 ===== -->
+<div id="app">
 <!-- 头部 -->
 <header class="app-header">
     <h1>《党建研究》全文检索</h1>
@@ -32,16 +35,8 @@
     <div class="search-status" id="searchStatus">加载中...</div>
 </header>
 
-<!-- 桌面端导航 -->
-<nav class="nav-tabs desktop-only">
-    <button class="nav-tab active" data-mode="search"><svg class="icon"><use href="#i-search"/></svg>搜索</button>
-    <button class="nav-tab" data-mode="section"><svg class="icon"><use href="#i-grid"/></svg>板块</button>
-    <button class="nav-tab" data-mode="catalog"><svg class="icon"><use href="#i-list"/></svg>目录</button>
-    <button class="nav-tab" data-mode="favorites"><svg class="icon"><use href="#i-bookmark"/></svg>收藏 <span class="fav-badge" id="favBadgeTop">0</span></button>
-</nav>
-
-<!-- 搜索区 -->
-<section class="search-section" id="searchSection">
+<!-- 搜索栏（标题下方，始终显示） -->
+<section class="search-bar" id="searchBar">
     <div class="search-box">
         <svg class="icon search-icon"><use href="#i-search"/></svg>
         <input type="text" id="searchInput" placeholder="搜索标题、作者或正文..." autocomplete="off">
@@ -52,38 +47,35 @@
         <select id="filterSection"><option value="">全部板块</option></select>
         <label class="filter-check"><input type="checkbox" id="bodyOnly"> 仅看有全文</label>
     </div>
-    <div class="result-info" id="resultInfo"></div>
 </section>
+
+<!-- 桌面端导航（3个标签） -->
+<nav class="nav-tabs desktop-only">
+    <button class="nav-tab active" data-mode="section"><svg class="icon"><use href="#i-grid"/></svg>板块</button>
+    <button class="nav-tab" data-mode="catalog"><svg class="icon"><use href="#i-list"/></svg>目录</button>
+    <button class="nav-tab" data-mode="favorites"><svg class="icon"><use href="#i-bookmark"/></svg>收藏 <span class="fav-badge" id="favBadgeTop">0</span></button>
+</nav>
 
 <!-- 内容区 -->
 <main class="content">
-    <!-- 搜索结果 -->
-    <div class="view active" id="searchView">
+    <div class="view" id="searchView">
+        <div class="result-info" id="resultInfo"></div>
         <div id="searchResults" class="results-list"></div>
     </div>
-
-    <!-- 板块分类 -->
-    <div class="view" id="sectionView">
+    <div class="view active" id="sectionView">
         <div id="sectionContent" class="section-list"></div>
     </div>
-
-    <!-- 文章目录 -->
     <div class="view" id="catalogView">
         <div id="catalogContent" class="catalog-list"></div>
     </div>
-
-    <!-- 我的收藏 -->
     <div class="view" id="favoritesView">
         <div id="favoritesContent" class="favorites-list"></div>
     </div>
 </main>
 
-<!-- 底部导航（移动端） -->
+<!-- 底部导航（移动端，3个标签） -->
 <nav class="bottom-nav mobile-only">
-    <button class="bn-item active" data-mode="search">
-        <svg class="icon"><use href="#i-search"/></svg><span class="bn-label">搜索</span>
-    </button>
-    <button class="bn-item" data-mode="section">
+    <button class="bn-item active" data-mode="section">
         <svg class="icon"><use href="#i-grid"/></svg><span class="bn-label">板块</span>
     </button>
     <button class="bn-item" data-mode="catalog">
@@ -94,22 +86,24 @@
         <span class="fav-badge" id="favBadgeBottom">0</span>
     </button>
 </nav>
+</div><!-- /#app -->
 
-<!-- 文章详情弹窗 -->
-<div class="modal-overlay" id="articleModal">
-    <div class="modal-box">
-        <div class="modal-header">
-            <button class="modal-fav-btn" id="modalFavBtn" onclick="toggleModalFav()"><svg class="icon"><use href="#i-star"/></svg></button>
-            <button class="modal-close" onclick="closeModal()"><svg class="icon"><use href="#i-close"/></svg></button>
-            <h2 id="modalTitle"></h2>
-            <div class="modal-meta" id="modalMeta"></div>
+<!-- ===== 文章页面（独立全屏页面） ===== -->
+<div id="articlePage" class="article-page">
+    <div class="reading-progress" id="readingProgress"></div>
+    <header class="article-page-header">
+        <button class="ap-back-btn" onclick="goBack()"><svg class="icon"><use href="#i-arrow-left"/></svg><span>返回</span></button>
+        <div class="ap-actions">
+            <button class="ap-fav-btn" id="articleFavBtn" onclick="toggleArticleFav()"><svg class="icon"><use href="#i-star"/></svg></button>
+            <a class="ap-original-link" id="articleOrigLink" href="#" target="_blank" rel="noopener"><svg class="icon"><use href="#i-external"/></svg></a>
         </div>
-        <div class="modal-body" id="modalBody"></div>
-        <div class="modal-footer" id="modalFooter"></div>
-    </div>
+        <h1 class="ap-title" id="articleTitle"></h1>
+        <div class="ap-meta" id="articleMeta"></div>
+    </header>
+    <div class="article-page-body" id="articleBody"></div>
 </div>
 
-<!-- 板块文章弹窗 -->
+<!-- ===== 板块文章弹窗 ===== -->
 <div class="modal-overlay" id="sectionModal">
     <div class="modal-box">
         <div class="modal-header">

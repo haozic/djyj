@@ -350,8 +350,7 @@ async function showArticle(encUrl) {
 
     // 填充文章页头
     document.getElementById('articleTitle').textContent = a.t;
-    document.getElementById('articleMeta').innerHTML =
-        `${a.y}年第${ci}期 ｜ ${escHtml(a.s)}${a.a ? ' ｜ ' + escHtml(a.a) : ''}`;
+    updateArticleMeta(a, 0);
 
     // 原文链接
     const origLink = document.getElementById('articleOrigLink');
@@ -400,6 +399,21 @@ async function showArticle(encUrl) {
     renderArticleBody(url, a.y, bodyEl);
 }
 
+function updateArticleMeta(a, wordCount) {
+    const ci = a.i <= 12 ? CN[a.i - 1] : a.i;
+    let meta = `${a.y}年第${ci}期 ｜ ${escHtml(a.s)}${a.a ? ' ｜ ' + escHtml(a.a) : ''}`;
+    if (wordCount > 0) {
+        meta += ` ｜ 约 ${wordCount} 字`;
+    }
+    document.getElementById('articleMeta').innerHTML = meta;
+}
+
+function countWords(text) {
+    if (!text) return 0;
+    // 移除空白字符后计算长度（中文按字计数）
+    return text.replace(/\s/g, '').length;
+}
+
 function renderArticleBody(url, year, bodyEl) {
     const yd = state.yearData[String(year)];
     if (yd && yd[url]) {
@@ -411,6 +425,12 @@ function renderArticleBody(url, year, bodyEl) {
             bodyEl.innerHTML = paras.map(p => '<p>' + escHtml(p) + '</p>').join('');
         } else {
             bodyEl.innerHTML = '<div class="no-body">正文内容为空</div>';
+        }
+        // 渲染后计算字数并更新页头信息
+        const a = state.meta.find(x => x.u === url);
+        if (a) {
+            const wordCount = countWords(bodyEl.textContent);
+            updateArticleMeta(a, wordCount);
         }
     } else {
         bodyEl.innerHTML = `<div class="no-body">未找到该文章的正文数据<br>

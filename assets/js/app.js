@@ -372,7 +372,8 @@ function toggleArticleFav() {
 }
 
 function goBack() {
-    if (document.body.classList.contains('article-active')) {
+    if (document.body.classList.contains('article-active') ||
+        document.body.classList.contains('section-active')) {
         history.back();
     }
 }
@@ -433,7 +434,7 @@ function renderSections() {
     let html = '';
     sorted.forEach(([name, count]) => {
         const pct = (count / maxCount * 100).toFixed(0);
-        html += `<div class="section-card" onclick="showSectionArticles('${encodeURIComponent(name)}')">
+        html += `<div class="section-card" onclick="showSectionPage('${encodeURIComponent(name)}')">
             <div class="sc-name">${escHtml(name)}</div>
             <div class="sc-bar"><div class="sc-bar-fill" style="width:${pct}%;"></div></div>
             <div class="sc-count">${count} 篇</div>
@@ -442,23 +443,28 @@ function renderSections() {
     container.innerHTML = html;
 }
 
-/* ===== 板块文章弹窗 ===== */
-function showSectionArticles(encName) {
+/* ===== 板块文章页面（独立全屏页面 + History API） ===== */
+function showSectionPage(encName) {
     const name = decodeURIComponent(encName);
     const articles = state.meta
         .filter(a => a.s === name)
         .sort((a, b) => b.y - a.y || a.i - b.i);
 
-    document.getElementById('sectionModalName').textContent = name;
-    document.getElementById('sectionModalCount').textContent = `${articles.length} 篇文章`;
-    document.getElementById('sectionModalSearch').value = '';
-    renderSectionModalBody(articles, '');
-    document.getElementById('sectionModal').classList.add('active');
-    document.body.style.overflow = 'hidden';
+    document.getElementById('sectionPageName').textContent = name;
+    document.getElementById('sectionPageCount').textContent = `${articles.length} 篇文章`;
+    document.getElementById('sectionPageSearch').value = '';
+    renderSectionPageBody(articles, '');
+
+    document.body.classList.add('section-active');
+    window.scrollTo(0, 0);
+
+    if (!history.state || history.state.section !== encName) {
+        history.pushState({ section: encName }, '', `#s=${encName}`);
+    }
 }
 
-function renderSectionModalBody(articles, query) {
-    const body = document.getElementById('sectionModalBody');
+function renderSectionPageBody(articles, query) {
+    const body = document.getElementById('sectionPageBody');
     body.innerHTML = '';
 
     let filtered = articles;
@@ -492,15 +498,19 @@ function renderSectionModalBody(articles, query) {
         });
         const issues = Object.keys(ig).sort((a, b) => parseInt(a) - parseInt(b));
 
-        html += `<div class="modal-year-group"><div class="modal-year-header">${year}年 (${ya.length}篇)</div>`;
+        html += `<div class="sp-year-group"><div class="sp-year-header">${year}年 (${ya.length}篇)</div>`;
         issues.forEach(iss => {
             const ia = ig[iss];
             const cin = parseInt(iss) <= 12 ? CN[parseInt(iss) - 1] : iss;
-            html += `<div class="modal-issue-group"><div class="modal-issue-label">${cin}期</div>`;
+            html += `<div class="sp-issue-group"><div class="sp-issue-label">${cin}期</div>`;
             ia.forEach(a => {
                 const author = a.a ? `<span class="author">｜${escHtml(a.a)}</span>` : '';
                 const encUrl = encodeURIComponent(a.u);
-                html += `<div class="modal-article" onclick="closeSectionModal(); showArticle('${encUrl}')">${escHtml(a.t)}${author}</div>`;
+                if (a.h) {
+                    html += `<div class="sp-article" onclick="showArticle('${encUrl}')">${escHtml(a.t)}${author}</div>`;
+                } else {
+                    html += `<div class="sp-article no-body">${escHtml(a.t)}<span class="sp-no-body-tag">无全文</span>${author}</div>`;
+                }
             });
             html += `</div>`;
         });
@@ -510,18 +520,17 @@ function renderSectionModalBody(articles, query) {
     body.innerHTML = html;
 }
 
-function filterSectionModal() {
-    const q = document.getElementById('sectionModalSearch').value.trim();
-    const name = document.getElementById('sectionModalName').textContent;
+function filterSectionPage() {
+    const q = document.getElementById('sectionPageSearch').value.trim();
+    const name = document.getElementById('sectionPageName').textContent;
     const articles = state.meta
         .filter(a => a.s === name)
         .sort((a, b) => b.y - a.y || a.i - b.i);
-    renderSectionModalBody(articles, q);
+    renderSectionPageBody(articles, q);
 }
 
-function closeSectionModal() {
-    document.getElementById('sectionModal').classList.remove('active');
-    document.body.style.overflow = '';
+function closeSectionPage() {
+    document.body.classList.remove('section-active');
 }
 
 /* ===== 目录视图（懒加载） ===== */
@@ -785,18 +794,12 @@ async function init() {
     document.getElementById('filterSection').addEventListener('change', performSearch);
     document.getElementById('bodyOnly').addEventListener('change', performSearch);
 
-    // 板块弹窗背景点击关闭
-    document.getElementById('sectionModal').addEventListener('click', e => {
-        if (e.target.id === 'sectionModal') closeSectionModal();
-    });
-
     // 键盘快捷键
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
-            if (document.body.classList.contains('article-active')) {
+            if (document.body.classList.contains('article-active') ||
+                document.body.classList.contains('section-active')) {
                 goBack();
-            } else {
-                closeSectionModal();
             }
         }
     });
@@ -805,6 +808,8 @@ async function init() {
     window.addEventListener('popstate', e => {
         if (document.body.classList.contains('article-active')) {
             closeArticlePage();
+        } else if (document.body.classList.contains('section-active')) {
+            closeSectionPage();
         }
     });
 
@@ -848,6 +853,14 @@ async function init() {
         const encUrl = location.hash.substring(3);
         if (encUrl) {
             setTimeout(() => showArticle(encUrl), 300);
+        }
+    }
+
+    // 支持直接通过 URL 打开板块页面
+    if (location.hash.startsWith('#s=')) {
+        const encName = location.hash.substring(3);
+        if (encName) {
+            setTimeout(() => showSectionPage(encName), 300);
         }
     }
 }

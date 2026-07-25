@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#7f1d1d">
 <meta name="description" content="《党建研究》杂志全文检索系统，覆盖2020-2026年全期">
 <title>《党建研究》全文检索</title>
-<link rel="stylesheet" href="assets/css/style.css?v=20260724a">
+<link rel="stylesheet" href="assets/css/style.css?v=20260725b">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237f1d1d' stroke-width='2'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg>">
 </head>
 <body>
@@ -103,21 +103,19 @@
     <div class="article-page-body" id="articleBody"></div>
 </div>
 
-<!-- ===== 板块文章弹窗 ===== -->
-<div class="modal-overlay" id="sectionModal">
-    <div class="modal-box">
-        <div class="modal-header">
-            <button class="modal-close" onclick="closeSectionModal()"><svg class="icon"><use href="#i-close"/></svg></button>
-            <h2 id="sectionModalName"></h2>
-            <div class="modal-meta" id="sectionModalCount"></div>
-        </div>
-        <div class="modal-search-bar">
-            <input type="text" id="sectionModalSearch" placeholder="在板块内搜索..." oninput="filterSectionModal()">
-        </div>
-        <div class="modal-body" id="sectionModalBody"></div>
+<!-- ===== 板块文章页面（独立全屏页面） ===== -->
+<div id="sectionPage" class="section-page">
+    <header class="section-page-header">
+        <button class="sp-back-btn" onclick="goBack()"><svg class="icon"><use href="#i-arrow-left"/></svg><span>返回</span></button>
+        <h1 class="sp-title" id="sectionPageName"></h1>
+        <div class="sp-meta" id="sectionPageCount"></div>
+    </header>
+    <div class="section-page-search">
+        <input type="text" id="sectionPageSearch" placeholder="在板块内搜索..." oninput="filterSectionPage()">
     </div>
+    <div class="section-page-body" id="sectionPageBody"></div>
 </div>
 
-<script src="assets/js/app.js?v=20260724a"></script>
+<script src="assets/js/app.js?v=20260725b"></script>
 </body>
 </html>

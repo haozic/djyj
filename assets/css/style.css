@@ -48,10 +48,11 @@ svg { display: inline-block; vertical-align: middle; }
 .icon { width: 1em; height: 1em; flex-shrink: 0; }
 button { font-family: inherit; }
 
-/* ===== App / Section Page / Article Page 切换 ===== */
+/* ===== App / Section Page / Article Page / About Page 切换 ===== */
 #app { display: block; }
 #sectionPage { display: none; }
 #articlePage { display: none; }
+#aboutPage { display: none; }
 body.section-active #app { display: none; }
 body.section-active #sectionPage { display: block; }
 body.section-active { padding-bottom: 0; }
@@ -59,6 +60,11 @@ body.article-active #app { display: none; }
 body.article-active #sectionPage { display: none; }
 body.article-active #articlePage { display: block; }
 body.article-active { padding-bottom: 0; }
+body.about-active #app { display: none; }
+body.about-active #sectionPage { display: none; }
+body.about-active #articlePage { display: none; }
+body.about-active #aboutPage { display: block; }
+body.about-active { padding-bottom: 0; }
 
 /* ===== Header ===== */
 .app-header {
@@ -66,7 +72,27 @@ body.article-active { padding-bottom: 0; }
     color: oklch(0.98 0.005 30);
     padding: 10px 20px 8px;
     text-align: center;
+    position: relative;
 }
+.header-about-btn {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    background: oklch(1 0 0 / 0.12);
+    border: none;
+    color: oklch(0.98 0.005 30);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s var(--ease);
+}
+.header-about-btn .icon { width: 17px; height: 17px; }
+.header-about-btn:hover { background: oklch(1 0 0 / 0.22); }
 .app-header h1 {
     font-size: 16px;
     font-weight: 700;
@@ -109,7 +135,7 @@ body.article-active { padding-bottom: 0; }
 /* ===== Search Bar (sticky, 标题下方) ===== */
 .search-bar {
     background: var(--card);
-    padding: 8px 16px 10px;
+    padding: 10px 16px 12px;
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
@@ -119,6 +145,7 @@ body.article-active { padding-bottom: 0; }
     position: relative;
     display: flex;
     align-items: center;
+    gap: 8px;
 }
 .search-box .search-icon {
     position: absolute;
@@ -127,10 +154,11 @@ body.article-active { padding-bottom: 0; }
     height: 17px;
     color: var(--text-3);
     pointer-events: none;
+    z-index: 1;
 }
 #searchInput {
-    width: 100%;
-    padding: 9px 36px 9px 40px;
+    flex: 1;
+    padding: 9px 14px 9px 40px;
     border: 1px solid var(--border-2);
     border-radius: var(--radius);
     font-size: 16px;
@@ -146,29 +174,62 @@ body.article-active { padding-bottom: 0; }
     background: var(--card);
 }
 #searchInput::placeholder { color: var(--text-3); }
-.search-clear {
-    position: absolute;
-    right: 6px;
+.search-btn {
+    padding: 9px 20px;
     border: none;
-    background: var(--border);
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
+    border-radius: var(--radius);
+    background: var(--primary);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-2);
+    transition: background 0.2s var(--ease);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
-.search-clear .icon { width: 13px; height: 13px; }
-.search-clear:hover { background: var(--border-2); }
+.search-btn:hover { background: var(--primary-dark); }
+.search-btn:active { transform: scale(0.97); }
 
 .filters {
     display: flex;
-    gap: 8px;
-    margin-top: 7px;
+    gap: 10px;
+    margin-top: 9px;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: space-between;
+}
+.scope-group {
+    display: flex;
+    gap: 2px;
+    background: var(--bg);
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+}
+.scope-option {
+    font-size: 12px;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 4px;
+    transition: all 0.15s var(--ease);
+}
+.scope-option input { width: 13px; height: 13px; cursor: pointer; accent-color: var(--primary); margin: 0; }
+.scope-option:has(input:checked) {
+    background: var(--primary);
+    color: white;
+}
+.scope-option:has(input:checked) input { accent-color: white; }
+.filter-right {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 .filters select {
     padding: 4px 8px;
@@ -179,7 +240,6 @@ body.article-active { padding-bottom: 0; }
     cursor: pointer;
     background: var(--card);
     color: var(--text-2);
-    max-width: 44%;
 }
 .filters select:focus { outline: none; border-color: var(--primary-light); }
 .filter-check {
@@ -792,6 +852,103 @@ body.article-active .reading-progress { display: block; }
     vertical-align: middle;
 }
 
+/* ===== About Page (关于页面) ===== */
+.about-page {
+    min-height: 100vh;
+    background: var(--bg);
+}
+.about-page-header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px 12px;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 3px oklch(0.2 0.01 30 / 0.04);
+}
+.ab-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    padding: 4px 0;
+    margin-bottom: 4px;
+    transition: opacity 0.15s var(--ease);
+}
+.ab-back-btn .icon { width: 18px; height: 18px; }
+.ab-back-btn:active { opacity: 0.6; }
+.ab-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+}
+.about-page-body {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 24px 20px 56px;
+}
+.about-section {
+    margin-bottom: 28px;
+}
+.about-section h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--border);
+}
+.about-section p {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.8;
+    margin-bottom: 6px;
+}
+.about-section strong { color: var(--text); }
+.about-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--primary);
+    font-size: 14px;
+    text-decoration: none;
+    padding: 8px 14px;
+    background: var(--card);
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius-sm);
+    margin: 6px 0;
+    transition: all 0.2s var(--ease);
+}
+.about-link:hover { border-color: var(--primary-light); background: var(--bg); }
+.about-link .icon { width: 16px; height: 16px; }
+.about-github { font-weight: 600; }
+.about-github .icon { width: 18px; height: 18px; }
+.about-note {
+    font-size: 12px !important;
+    color: var(--text-3) !important;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: oklch(0.96 0.005 30);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--border-2);
+}
+.about-footer {
+    text-align: center;
+    padding: 24px 0 0;
+    border-top: 1px solid var(--border);
+    margin-top: 12px;
+}
+.about-footer p {
+    font-size: 12px;
+    color: var(--text-3);
+}
+
 /* ===== Loading ===== */
 .loading { text-align: center; padding: 48px 0; color: var(--text-3); font-size: 14px; }
 .spinner {
@@ -830,7 +987,9 @@ body.article-active .reading-progress { display: block; }
         z-index: 99;
     }
     #searchInput { font-size: 15px; }
-    .filters select { max-width: none; font-size: 13px; }
+    .search-btn { padding: 9px 28px; font-size: 15px; }
+    .scope-option { font-size: 13px; padding: 4px 12px; }
+    .filters select { font-size: 13px; }
     .filter-check { font-size: 13px; }
 
     .nav-tabs {
@@ -855,6 +1014,10 @@ body.article-active .reading-progress { display: block; }
     .ap-title { font-size: 24px; padding-right: 90px; }
     .article-page-header { padding: 14px 24px 16px; }
     .ap-back-btn { font-size: 15px; }
+
+    .about-page-body { padding: 40px 48px 56px; }
+    .about-section h2 { font-size: 18px; }
+    .about-section p { font-size: 15px; }
 
     .modal-overlay { padding: 30px 16px; }
     .modal-box {

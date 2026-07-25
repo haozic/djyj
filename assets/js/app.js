@@ -126,12 +126,17 @@ function updateFavBadges() {
 }
 
 /* ===== 搜索 ===== */
+function getSearchScope() {
+    const checked = document.querySelector('input[name="searchScope"]:checked');
+    return checked ? checked.value : 'all';
+}
+
 function performSearch() {
     const input = document.getElementById('searchInput');
     const query = input.value.trim().toLowerCase();
     const hasQuery = query.length > 0;
 
-    // 有搜索词时自动切换到搜索视图
+    // 有搜索词时切换到搜索视图
     if (hasQuery && !state.isSearching) {
         state.isSearching = true;
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -150,21 +155,24 @@ function performSearch() {
 
     if (!hasQuery) return;
 
-    const fy = document.getElementById('filterYear').value;
+    const scope = getSearchScope(); // all / title / body
     const fs = document.getElementById('filterSection').value;
     const bo = document.getElementById('bodyOnly').checked;
     const container = document.getElementById('searchResults');
     const info = document.getElementById('resultInfo');
 
     let results = state.meta.filter(a => {
-        if (fy && a.y != fy) return false;
         if (fs && a.s !== fs) return false;
         if (bo && !a.h) return false;
         if (query) {
             let matched = false;
-            const metaData = (a.t + ' ' + a.a + ' ' + a.s).toLowerCase();
-            if (metaData.includes(query)) matched = true;
-            if (!matched && a.h && state.fullTextReady) {
+            // 标题搜索（包含标题、作者、板块名）
+            if (scope === 'title' || scope === 'all') {
+                const metaData = (a.t + ' ' + a.a + ' ' + a.s).toLowerCase();
+                if (metaData.includes(query)) matched = true;
+            }
+            // 正文搜索
+            if (!matched && (scope === 'body' || scope === 'all') && a.h && state.fullTextReady) {
                 const yd = state.yearData[String(a.y)];
                 if (yd && yd[a.u] && yd[a.u].b) {
                     if (yd[a.u].b.toLowerCase().includes(query)) matched = true;
@@ -176,9 +184,10 @@ function performSearch() {
     });
 
     const qDisplay = input.value.trim();
+    const scopeLabel = scope === 'all' ? '标题+正文' : (scope === 'title' ? '仅标题' : '仅正文');
     let infoText = `共 ${results.length} 篇文章`;
-    if (qDisplay) infoText += `（关键词："${qDisplay}"）`;
-    if (!state.fullTextReady && query) infoText += ' · 全文搜索加载中，当前仅搜索标题/作者';
+    if (qDisplay) infoText += `（关键词："${qDisplay}" ｜ 范围：${scopeLabel}）`;
+    if (scope !== 'title' && !state.fullTextReady) infoText += ' · 全文搜索加载中，当前仅搜索标题/作者';
     info.textContent = infoText;
 
     if (results.length === 0) {
@@ -197,7 +206,7 @@ function performSearch() {
 
         if (query) {
             titleHtml = highlightText(a.t, query);
-            if (a.h) {
+            if (a.h && (scope === 'body' || scope === 'all')) {
                 const yd = state.yearData[String(a.y)];
                 const body = (yd && yd[a.u]) ? yd[a.u].b : '';
                 if (body) {
@@ -373,7 +382,8 @@ function toggleArticleFav() {
 
 function goBack() {
     if (document.body.classList.contains('article-active') ||
-        document.body.classList.contains('section-active')) {
+        document.body.classList.contains('section-active') ||
+        document.body.classList.contains('about-active')) {
         history.back();
     }
 }
@@ -382,6 +392,19 @@ function closeArticlePage() {
     document.body.classList.remove('article-active');
     state.currentArticleUrl = null;
     document.getElementById('readingProgress').style.width = '0%';
+}
+
+/* ===== 关于页面（独立全屏页面 + History API） ===== */
+function showAboutPage() {
+    document.body.classList.add('about-active');
+    window.scrollTo(0, 0);
+    if (!history.state || !history.state.about) {
+        history.pushState({ about: true }, '', '#about');
+    }
+}
+
+function closeAboutPage() {
+    document.body.classList.remove('about-active');
 }
 
 /* ===== 阅读进度条 ===== */
@@ -712,7 +735,6 @@ function switchMode(mode) {
 
     // 清空搜索框
     document.getElementById('searchInput').value = '';
-    document.getElementById('searchClear').style.display = 'none';
 
     // 更新标签激活状态
     document.querySelectorAll('.nav-tab, .bn-item').forEach(btn => {
@@ -757,14 +779,6 @@ function highlightText(text, query) {
     return result;
 }
 
-function debounce(fn, delay) {
-    let timer = null;
-    return function(...args) {
-        clearTimeout(timer);
-        timer = setTimeout(() => fn.apply(this, args), delay);
-    };
-}
-
 /* ===== 初始化 ===== */
 async function init() {
     loadFavorites();
@@ -775,30 +789,27 @@ async function init() {
         btn.addEventListener('click', () => switchMode(btn.dataset.mode));
     });
 
-    // 搜索
-    const debouncedSearch = debounce(performSearch, 250);
+    // 搜索：点击按钮或回车触发
     const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', e => {
-        document.getElementById('searchClear').style.display = e.target.value ? 'flex' : 'none';
-        debouncedSearch();
+    document.getElementById('searchBtn').addEventListener('click', performSearch);
+    searchInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') performSearch();
     });
 
-    document.getElementById('searchClear').addEventListener('click', () => {
-        searchInput.value = '';
-        document.getElementById('searchClear').style.display = 'none';
-        performSearch();
-        searchInput.focus();
-    });
-
-    document.getElementById('filterYear').addEventListener('change', performSearch);
     document.getElementById('filterSection').addEventListener('change', performSearch);
     document.getElementById('bodyOnly').addEventListener('change', performSearch);
+    document.querySelectorAll('input[name="searchScope"]').forEach(r => {
+        r.addEventListener('change', () => {
+            if (searchInput.value.trim()) performSearch();
+        });
+    });
 
     // 键盘快捷键
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
             if (document.body.classList.contains('article-active') ||
-                document.body.classList.contains('section-active')) {
+                document.body.classList.contains('section-active') ||
+                document.body.classList.contains('about-active')) {
                 goBack();
             }
         }
@@ -810,6 +821,8 @@ async function init() {
             closeArticlePage();
         } else if (document.body.classList.contains('section-active')) {
             closeSectionPage();
+        } else if (document.body.classList.contains('about-active')) {
+            closeAboutPage();
         }
     });
 
@@ -825,16 +838,9 @@ async function init() {
     }
 
     // 填充筛选器
-    const yearCounter = {};
     const sectionCounter = {};
     state.meta.forEach(a => {
-        yearCounter[a.y] = (yearCounter[a.y] || 0) + 1;
         sectionCounter[a.s] = (sectionCounter[a.s] || 0) + 1;
-    });
-
-    const fy = document.getElementById('filterYear');
-    Object.keys(yearCounter).sort((a, b) => b - a).forEach(y => {
-        fy.innerHTML += `<option value="${y}">${y}年 (${yearCounter[y]}篇)</option>`;
     });
 
     const fs = document.getElementById('filterSection');
@@ -862,6 +868,11 @@ async function init() {
         if (encName) {
             setTimeout(() => showSectionPage(encName), 300);
         }
+    }
+
+    // 支持直接通过 URL 打开关于页面
+    if (location.hash === '#about') {
+        setTimeout(() => showAboutPage(), 300);
     }
 }
 

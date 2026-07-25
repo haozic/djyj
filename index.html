@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#7f1d1d">
 <meta name="description" content="《党建研究》杂志全文检索系统，覆盖2020-2026年全期">
 <title>《党建研究》全文检索</title>
-<link rel="stylesheet" href="assets/css/style.css?v=20260725b">
+<link rel="stylesheet" href="assets/css/style.css?v=20260725c">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237f1d1d' stroke-width='2'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg>">
 </head>
 <body>
@@ -24,12 +24,15 @@
 <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></symbol>
 <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
 <symbol id="i-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+<symbol id="i-github" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></symbol>
 </svg>
 
 <!-- ===== 主应用 ===== -->
 <div id="app">
 <!-- 头部 -->
 <header class="app-header">
+    <button class="header-about-btn" onclick="showAboutPage()" title="关于"><svg class="icon"><use href="#i-info"/></svg></button>
     <h1>《党建研究》全文检索</h1>
     <p class="app-subtitle">2020-2026 全期 · <span id="totalCount">-</span> 篇文章</p>
     <div class="search-status" id="searchStatus">加载中...</div>
@@ -39,13 +42,19 @@
 <section class="search-bar" id="searchBar">
     <div class="search-box">
         <svg class="icon search-icon"><use href="#i-search"/></svg>
-        <input type="text" id="searchInput" placeholder="搜索标题、作者或正文..." autocomplete="off">
-        <button class="search-clear" id="searchClear" style="display:none;"><svg class="icon"><use href="#i-close"/></svg></button>
+        <input type="text" id="searchInput" placeholder="输入关键词..." autocomplete="off">
+        <button class="search-btn" id="searchBtn">搜索</button>
     </div>
     <div class="filters" id="filters">
-        <select id="filterYear"><option value="">全部年份</option></select>
-        <select id="filterSection"><option value="">全部板块</option></select>
-        <label class="filter-check"><input type="checkbox" id="bodyOnly"> 仅看有全文</label>
+        <div class="scope-group">
+            <label class="scope-option"><input type="radio" name="searchScope" value="all" checked> 标题+正文</label>
+            <label class="scope-option"><input type="radio" name="searchScope" value="title"> 仅标题</label>
+            <label class="scope-option"><input type="radio" name="searchScope" value="body"> 仅正文</label>
+        </div>
+        <div class="filter-right">
+            <select id="filterSection"><option value="">全部板块</option></select>
+            <label class="filter-check"><input type="checkbox" id="bodyOnly"> 仅有全文</label>
+        </div>
     </div>
 </section>
 
@@ -88,6 +97,49 @@
 </nav>
 </div><!-- /#app -->
 
+<!-- ===== 关于页面（独立全屏页面） ===== -->
+<div id="aboutPage" class="about-page">
+    <header class="about-page-header">
+        <button class="ab-back-btn" onclick="goBack()"><svg class="icon"><use href="#i-arrow-left"/></svg><span>返回</span></button>
+        <h1 class="ab-title">关于本站</h1>
+    </header>
+    <div class="about-page-body">
+        <div class="about-section">
+            <h2>项目简介</h2>
+            <p>本网站是一个开源的《党建研究》杂志全文检索系统，收录了 2020 年至 2026 年共 67 期、1627 篇文章，提供按板块浏览、目录导航、全文搜索和文章收藏等功能，支持移动端与桌面端自适应访问。</p>
+        </div>
+        <div class="about-section">
+            <h2>内容来源</h2>
+            <p>所有文章内容均来源于共产党员网《党建研究》专栏：</p>
+            <a class="about-link" href="https://djyj.12371.cn/01/" target="_blank" rel="noopener">
+                <svg class="icon"><use href="#i-external"/></svg>
+                https://djyj.12371.cn/01/
+            </a>
+            <p class="about-note">本站仅对公开内容进行整理归档与检索索引，不修改原文内容，版权归原出版方所有。</p>
+        </div>
+        <div class="about-section">
+            <h2>数据更新</h2>
+            <p>最近一次数据采集更新时间：<strong>2026 年 7 月 24 日</strong></p>
+            <p>涵盖范围：2020 年第 1 期 至 2026 年第 7 期</p>
+        </div>
+        <div class="about-section">
+            <h2>开源项目</h2>
+            <p>本项目代码完全开源，欢迎参与贡献或提出问题：</p>
+            <a class="about-link about-github" href="https://github.com/haozic/djyj" target="_blank" rel="noopener">
+                <svg class="icon"><use href="#i-github"/></svg>
+                github.com/haozic/djyj
+            </a>
+        </div>
+        <div class="about-section">
+            <h2>技术说明</h2>
+            <p>纯前端静态网站，无后端服务，所有数据在浏览器端加载和检索。部署于 Cloudflare Pages，支持全球 CDN 加速访问。</p>
+        </div>
+        <div class="about-footer">
+            <p>本站为非营利性公益项目，仅供学习研究使用</p>
+        </div>
+    </div>
+</div>
+
 <!-- ===== 文章页面（独立全屏页面） ===== -->
 <div id="articlePage" class="article-page">
     <div class="reading-progress" id="readingProgress"></div>
@@ -116,6 +168,6 @@
     <div class="section-page-body" id="sectionPageBody"></div>
 </div>
 
-<script src="assets/js/app.js?v=20260725b"></script>
+<script src="assets/js/app.js?v=20260725c"></script>
 </body>
 </html>

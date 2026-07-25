@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#7f1d1d">
 <meta name="description" content="《党建研究》杂志全文检索系统，覆盖2020-2026年全期">
 <title>《党建研究》全文检索</title>
-<link rel="stylesheet" href="assets/css/style.css?v=20260725c">
+<link rel="stylesheet" href="assets/css/style.css?v=20260725d">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237f1d1d' stroke-width='2'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg>">
 </head>
 <body>
@@ -32,10 +32,10 @@
 <div id="app">
 <!-- 头部 -->
 <header class="app-header">
-    <button class="header-about-btn" onclick="showAboutPage()" title="关于"><svg class="icon"><use href="#i-info"/></svg></button>
     <h1>《党建研究》全文检索</h1>
     <p class="app-subtitle">2020-2026 全期 · <span id="totalCount">-</span> 篇文章</p>
     <div class="search-status" id="searchStatus">加载中...</div>
+    <button class="header-about-btn" onclick="showAboutPage()" title="关于"><svg class="icon"><use href="#i-info"/></svg></button>
 </header>
 
 <!-- 搜索栏（标题下方，始终显示） -->
@@ -51,10 +51,7 @@
             <label class="scope-option"><input type="radio" name="searchScope" value="title"> 仅标题</label>
             <label class="scope-option"><input type="radio" name="searchScope" value="body"> 仅正文</label>
         </div>
-        <div class="filter-right">
-            <select id="filterSection"><option value="">全部板块</option></select>
-            <label class="filter-check"><input type="checkbox" id="bodyOnly"> 仅有全文</label>
-        </div>
+        <label class="filter-check"><input type="checkbox" id="bodyOnly"> 仅有全文</label>
     </div>
 </section>
 
@@ -70,6 +67,7 @@
     <div class="view" id="searchView">
         <div class="result-info" id="resultInfo"></div>
         <div id="searchResults" class="results-list"></div>
+        <div id="pagination" class="pagination"></div>
     </div>
     <div class="view active" id="sectionView">
         <div id="sectionContent" class="section-list"></div>
@@ -168,6 +166,6 @@
     <div class="section-page-body" id="sectionPageBody"></div>
 </div>
 
-<script src="assets/js/app.js?v=20260725c"></script>
+<script src="assets/js/app.js?v=20260725d"></script>
 </body>
 </html>

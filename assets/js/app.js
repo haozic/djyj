@@ -14,6 +14,9 @@ const state = {
     catalogRendered: false,
     catalogExpanded: new Set(),
     isSearching: false,    // 是否正在显示搜索结果
+    searchResults: [],     // 当前搜索结果（全部）
+    currentPage: 1,        // 当前页码
+    pageSize: 20,          // 每页显示条数
 };
 
 const CN = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
@@ -144,25 +147,23 @@ function performSearch() {
     } else if (!hasQuery && state.isSearching) {
         // 清空搜索时返回当前标签
         state.isSearching = false;
+        state.searchResults = [];
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         const viewMap = { section: 'sectionView', catalog: 'catalogView', favorites: 'favoritesView' };
         const view = document.getElementById(viewMap[state.currentMode]);
         if (view) view.classList.add('active');
         document.getElementById('resultInfo').textContent = '';
         document.getElementById('searchResults').innerHTML = '';
+        document.getElementById('pagination').innerHTML = '';
         return;
     }
 
     if (!hasQuery) return;
 
     const scope = getSearchScope(); // all / title / body
-    const fs = document.getElementById('filterSection').value;
     const bo = document.getElementById('bodyOnly').checked;
-    const container = document.getElementById('searchResults');
-    const info = document.getElementById('resultInfo');
 
     let results = state.meta.filter(a => {
-        if (fs && a.s !== fs) return false;
         if (bo && !a.h) return false;
         if (query) {
             let matched = false;
@@ -183,29 +184,49 @@ function performSearch() {
         return true;
     });
 
+    state.searchResults = results;
+    state.currentPage = 1;
+
     const qDisplay = input.value.trim();
     const scopeLabel = scope === 'all' ? '标题+正文' : (scope === 'title' ? '仅标题' : '仅正文');
     let infoText = `共 ${results.length} 篇文章`;
     if (qDisplay) infoText += `（关键词："${qDisplay}" ｜ 范围：${scopeLabel}）`;
     if (scope !== 'title' && !state.fullTextReady) infoText += ' · 全文搜索加载中，当前仅搜索标题/作者';
-    info.textContent = infoText;
+    document.getElementById('resultInfo').textContent = infoText;
+
+    renderSearchPage();
+}
+
+function renderSearchPage() {
+    const results = state.searchResults;
+    const container = document.getElementById('searchResults');
+    const pagination = document.getElementById('pagination');
+    const query = document.getElementById('searchInput').value.trim().toLowerCase();
+    const scope = getSearchScope();
 
     if (results.length === 0) {
         container.innerHTML = '<div class="loading"><div>未找到匹配文章</div></div>';
+        pagination.innerHTML = '';
         return;
     }
 
-    const limit = query ? 200 : 100;
-    const display = results.slice(0, limit);
-    let html = '';
+    const totalPages = Math.ceil(results.length / state.pageSize);
+    if (state.currentPage > totalPages) state.currentPage = totalPages;
+    if (state.currentPage < 1) state.currentPage = 1;
 
-    display.forEach(a => {
+    const start = (state.currentPage - 1) * state.pageSize;
+    const end = Math.min(start + state.pageSize, results.length);
+    const pageResults = results.slice(start, end);
+
+    let html = '';
+    pageResults.forEach(a => {
         let titleHtml = escHtml(a.t);
         let snippet = '';
         let authorHtml = a.a ? `<span class="rc-author">｜${escHtml(a.a)}</span>` : '';
 
         if (query) {
             titleHtml = highlightText(a.t, query);
+            // 仅在搜索正文或全部时显示正文摘要
             if (a.h && (scope === 'body' || scope === 'all')) {
                 const yd = state.yearData[String(a.y)];
                 const body = (yd && yd[a.u]) ? yd[a.u].b : '';
@@ -222,9 +243,14 @@ function performSearch() {
                     }
                 }
             }
-            if (!snippet) snippet = '<span style="color:var(--text-3);">无正文</span>';
-        } else {
-            snippet = a.h ? '点击查看全文' : '<span style="color:var(--text-3);">无全文</span>';
+            // 仅标题搜索时不显示正文摘要，有正文的文章不显示"无正文"
+            if (!snippet) {
+                if (scope === 'title') {
+                    snippet = ''; // 标题搜索时不显示摘要
+                } else if (!a.h) {
+                    snippet = '<span style="color:var(--text-3);">无正文</span>';
+                }
+            }
         }
 
         const ci = a.i <= 12 ? CN[a.i - 1] : a.i;
@@ -233,6 +259,7 @@ function performSearch() {
         const favIcon = svgStar(isFav);
         const noBodyTag = a.h ? '' : '<span class="rc-tag no-body">无全文</span>';
         const encUrl = encodeURIComponent(a.u);
+        const snippetHtml = snippet ? `<div class="rc-snippet">${snippet}</div>` : '';
 
         html += `<div class="result-card" onclick="showArticle('${encUrl}')">
             <button class="rc-fav-btn ${favClass}" onclick="event.stopPropagation(); toggleFavFromCard(this, '${encUrl}')">${favIcon}</button>
@@ -243,15 +270,62 @@ function performSearch() {
                 ${authorHtml}
                 ${noBodyTag}
             </div>
-            <div class="rc-snippet">${snippet}</div>
+            ${snippetHtml}
         </div>`;
     });
 
-    if (results.length > limit) {
-        html += `<div class="loading"><div>仅显示前 ${limit} 篇，请缩小搜索范围</div></div>`;
+    container.innerHTML = html;
+    renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+    const pagination = document.getElementById('pagination');
+    if (totalPages <= 1) {
+        pagination.innerHTML = `<span class="page-info">共 ${state.searchResults.length} 条</span>`;
+        return;
     }
 
-    container.innerHTML = html;
+    let html = '';
+    const cur = state.currentPage;
+
+    // 上一页
+    html += `<button class="page-btn" onclick="goToPage(${cur - 1})" ${cur <= 1 ? 'disabled' : ''}><svg class="icon" style="width:14px;height:14px;"><use href="#i-chevron" style="transform:rotate(90deg);"/></svg></button>`;
+
+    // 页码按钮（智能显示）
+    const pages = [];
+    if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+        pages.push(1);
+        if (cur > 4) pages.push('...');
+        const start = Math.max(2, cur - 1);
+        const end = Math.min(totalPages - 1, cur + 1);
+        for (let i = start; i <= end; i++) pages.push(i);
+        if (cur < totalPages - 3) pages.push('...');
+        pages.push(totalPages);
+    }
+
+    pages.forEach(p => {
+        if (p === '...') {
+            html += '<span class="page-ellipsis">…</span>';
+        } else {
+            html += `<button class="page-btn ${p === cur ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`;
+        }
+    });
+
+    // 下一页
+    html += `<button class="page-btn" onclick="goToPage(${cur + 1})" ${cur >= totalPages ? 'disabled' : ''}><svg class="icon" style="width:14px;height:14px;"><use href="#i-chevron" style="transform:rotate(-90deg);"/></svg></button>`;
+    html += `<span class="page-info">${cur}/${totalPages} 页 · 共 ${state.searchResults.length} 条</span>`;
+
+    pagination.innerHTML = html;
+}
+
+function goToPage(page) {
+    const totalPages = Math.ceil(state.searchResults.length / state.pageSize);
+    if (page < 1 || page > totalPages) return;
+    state.currentPage = page;
+    renderSearchPage();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function toggleFavFromCard(btn, encUrl) {
@@ -796,7 +870,6 @@ async function init() {
         if (e.key === 'Enter') performSearch();
     });
 
-    document.getElementById('filterSection').addEventListener('change', performSearch);
     document.getElementById('bodyOnly').addEventListener('change', performSearch);
     document.querySelectorAll('input[name="searchScope"]').forEach(r => {
         r.addEventListener('change', () => {
@@ -836,19 +909,6 @@ async function init() {
             '<div class="loading"><div>数据加载失败，请刷新重试</div></div>';
         return;
     }
-
-    // 填充筛选器
-    const sectionCounter = {};
-    state.meta.forEach(a => {
-        sectionCounter[a.s] = (sectionCounter[a.s] || 0) + 1;
-    });
-
-    const fs = document.getElementById('filterSection');
-    Object.entries(sectionCounter)
-        .sort((a, b) => b[1] - a[1])
-        .forEach(([name, count]) => {
-            fs.innerHTML += `<option value="${escHtml(name)}">${escHtml(name)} (${count}篇)</option>`;
-        });
 
     // 默认显示板块视图
     renderSections();

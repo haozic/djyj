@@ -143,7 +143,7 @@ body.about-active { padding-bottom: 0; }
     display: flex;
     flex-direction: column;
     gap: 20px;
-    max-width: 420px;
+    max-width: 300px;
     width: 100%;
 }
 .magazine-card {
@@ -154,6 +154,7 @@ body.about-active { padding-bottom: 0; }
     cursor: pointer;
     transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
     display: flex;
+    flex-direction: column;
     align-items: stretch;
 }
 .magazine-card:hover {
@@ -164,7 +165,7 @@ body.about-active { padding-bottom: 0; }
 
 /* Magazine Covers */
 .mag-cover {
-    width: 110px;
+    width: 100%;
     aspect-ratio: 3 / 4;
     flex-shrink: 0;
     overflow: hidden;

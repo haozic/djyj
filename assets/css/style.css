@@ -148,7 +148,7 @@ body.about-active { padding-bottom: 0; }
 }
 .magazine-card {
     background: var(--card);
-    border-radius: var(--radius-lg);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--shadow-md);
     cursor: pointer;
@@ -171,8 +171,6 @@ body.about-active { padding-bottom: 0; }
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
 }
 .mag-cover-qs {
     background-image: url('../img/cover_qs.jpg');

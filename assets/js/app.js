@@ -11,6 +11,7 @@ const MAGAZINES = {
         yearsPath: 'data/qs/years',
         source: 'https://www.qstheory.cn/qs/mulu.htm',
         desc: '中共中央委员会机关刊',
+        useSplitData: true,
     },
     hqwg: {
         name: '红旗文稿',
@@ -21,6 +22,7 @@ const MAGAZINES = {
         yearsPath: 'data/hqwg/years',
         source: 'https://www.qstheory.cn/hqwglist/mulu.htm',
         desc: '政治理论半月刊',
+        useSplitData: true,
     },
     djyj: {
         name: '党建研究',
@@ -31,6 +33,7 @@ const MAGAZINES = {
         yearsPath: 'data/years',
         source: 'https://djyj.12371.cn/',
         desc: '党建理论与实践研究月刊',
+        useSplitData: false,
     },
 };
 
@@ -43,6 +46,7 @@ const state = {
     currentArticleUrl: null,
     fullTextReady: false,
     catalogRendered: false,
+    catalogPending: false,
     catalogExpanded: new Set(),
     isSearching: false,
     searchResults: [],
@@ -71,6 +75,8 @@ function getMagState() {
             loadedYears: new Set(),
             loadingYears: new Set(),
             fullTextReady: false,
+            articleIndex: null,
+            indexLoaded: false,
         };
     }
     return state.magCache[state.currentMag];
@@ -105,6 +111,7 @@ function enterMagazine(magKey) {
 
     // 重置状态
     state.catalogRendered = false;
+    state.catalogPending = false;
     state.catalogExpanded = new Set();
     state.isSearching = false;
     state.currentMode = 'section';
@@ -172,7 +179,24 @@ async function initMagazine(magKey) {
         }
     }
 
+    // 后台加载文章索引（不阻塞）
+    if (!ms.indexLoaded) {
+        ms.indexLoaded = true;
+        fetch('data/article_index.json')
+            .then(r => r.ok ? r.json() : null)
+            .then(idx => {
+                if (idx) ms.articleIndex = idx[magKey] || {};
+            })
+            .catch(() => {});
+    }
+
     document.getElementById('totalCount').textContent = ms.meta.length;
+
+    // 如果用户已在目录视图，重新渲染目录
+    if (state.catalogPending && state.currentMode === 'catalog') {
+        state.catalogPending = false;
+        renderCatalog();
+    }
 
     // 默认显示板块
     renderSections();
@@ -188,29 +212,36 @@ async function loadYearData(year, retry = 2) {
     if (ms.loadedYears.has(year) || ms.loadingYears.has(year)) return ms.loadedYears.has(year);
     ms.loadingYears.add(year);
     try {
-        // 先尝试按期加载（分片后的数据）
-        const manifestResp = await fetch(`${conf.yearsPath}/${year}/_manifest.json`);
-        if (manifestResp.ok) {
-            const manifest = await manifestResp.json();
-            ms.yearData[year] = {};
-            for (const issue of manifest.issues) {
-                try {
-                    const issueResp = await fetch(`${conf.yearsPath}/${year}/${issue}.json`);
-                    if (issueResp.ok) {
-                        const issueData = await issueResp.json();
-                        Object.assign(ms.yearData[year], issueData);
+        if (conf.useSplitData) {
+            // 分片数据：先加载 manifest，再按期加载
+            const manifestResp = await fetch(`${conf.yearsPath}/${year}/_manifest.json`);
+            if (manifestResp.ok) {
+                const manifest = await manifestResp.json();
+                ms.yearData[year] = {};
+                for (const issue of manifest.issues) {
+                    try {
+                        const issueResp = await fetch(`${conf.yearsPath}/${year}/${issue}.json`);
+                        if (issueResp.ok) {
+                            const issueData = await issueResp.json();
+                            Object.assign(ms.yearData[year], issueData);
+                        }
+                    } catch (e) {
+                        console.error(`加载 ${year} 年第 ${issue} 期数据失败:`, e);
                     }
-                } catch (e) {
-                    console.error(`加载 ${year} 年第 ${issue} 期数据失败:`, e);
                 }
+                ms.loadedYears.add(year);
+                return true;
             }
-            ms.loadedYears.add(year);
-            return true;
+            throw new Error('manifest not found');
         }
-        // 回退到整年文件（党建研究等未分片数据）
-        throw new Error('manifest not found');
+        // 非分片数据：直接加载整年文件
+        const resp = await fetch(`${conf.yearsPath}/${year}.json`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        ms.yearData[year] = await resp.json();
+        ms.loadedYears.add(year);
+        return true;
     } catch (e) {
-        // 尝试旧版整年文件
+        // 回退到旧版整年文件
         try {
             const resp = await fetch(`${conf.yearsPath}/${year}.json`);
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -234,19 +265,14 @@ async function loadYearData(year, retry = 2) {
 async function loadAllYearsBackground() {
     const ms = getMagState();
     if (!ms) return;
-    const years = [...new Set(ms.meta.map(a => a.y))].sort((a, b) => b - a);
     const status = document.getElementById('searchStatus');
-    status.className = 'search-status loading';
-    status.textContent = '全文搜索加载中...';
-
-    for (const y of years) {
-        await loadYearData(y);
-    }
-
-    ms.fullTextReady = true;
-    state.fullTextReady = true;
     status.className = 'search-status ready';
-    status.textContent = '全文搜索就绪';
+    status.textContent = '标题搜索就绪 · 正文搜索按需加载';
+
+    // 不再自动加载所有年份数据
+    // 正文搜索时按需加载对应年份
+    ms.fullTextReady = false;
+    state.fullTextReady = false;
 
     const q = document.getElementById('searchInput').value.trim();
     if (q) performSearch();
@@ -323,25 +349,97 @@ function performSearch() {
     const scope = getSearchScope();
     const bo = document.getElementById('bodyOnly').checked;
 
-    let results = ms.meta.filter(a => {
-        if (bo && !a.h) return false;
-        if (query) {
-            let matched = false;
-            if (scope === 'title' || scope === 'all') {
-                const metaData = (a.t + ' ' + a.a + ' ' + a.s).toLowerCase();
-                if (metaData.includes(query)) matched = true;
-            }
-            if (!matched && (scope === 'body' || scope === 'all') && a.h && ms.fullTextReady) {
+    // 标题搜索：立即执行
+    let results;
+    if (scope === 'title') {
+        results = ms.meta.filter(a => {
+            if (bo && !a.h) return false;
+            const metaData = (a.t + ' ' + a.a + ' ' + a.s).toLowerCase();
+            return metaData.includes(query);
+        });
+    } else if (scope === 'all') {
+        // 标题+正文：先搜标题，同时检查已加载的正文
+        results = ms.meta.filter(a => {
+            if (bo && !a.h) return false;
+            const metaData = (a.t + ' ' + a.a + ' ' + a.s).toLowerCase();
+            if (metaData.includes(query)) return true;
+            if (a.h) {
                 const yd = ms.yearData[String(a.y)];
                 if (yd && yd[a.u] && yd[a.u].b) {
-                    if (yd[a.u].b.toLowerCase().includes(query)) matched = true;
+                    if (yd[a.u].b.toLowerCase().includes(query)) return true;
                 }
             }
-            if (!matched) return false;
+            return false;
+        });
+        // 如果正文数据未完全加载，提示用户
+        if (!ms.fullTextReady) {
+            performBodySearch(query, results, scope, bo);
+            return;
         }
-        return true;
+    } else if (scope === 'body') {
+        // 仅正文：需要正文数据
+        if (!ms.fullTextReady) {
+            performBodySearch(query, [], scope, bo);
+            return;
+        }
+        results = ms.meta.filter(a => {
+            if (bo && !a.h) return false;
+            if (!a.h) return false;
+            const yd = ms.yearData[String(a.y)];
+            if (yd && yd[a.u] && yd[a.u].b) {
+                return yd[a.u].b.toLowerCase().includes(query);
+            }
+            return false;
+        });
+    } else {
+        results = ms.meta.filter(a => !bo || a.h);
+    }
+
+    finishSearch(results, query, scope, input);
+}
+
+async function performBodySearch(query, initialResults, scope, bo) {
+    const ms = getMagState();
+    if (!ms) return;
+    const input = document.getElementById('searchInput');
+    const infoEl = document.getElementById('resultInfo');
+    const resultsEl = document.getElementById('searchResults');
+
+    infoEl.textContent = '正在加载正文数据用于搜索...';
+    resultsEl.innerHTML = '<div class="loading"><div class="spinner"></div><div>加载正文数据中...</div></div>';
+
+    // 按需加载所有未加载的年份
+    const years = [...new Set(ms.meta.filter(a => a.h).map(a => a.y))].sort((a, b) => b - a);
+    for (const y of years) {
+        if (!ms.loadedYears.has(String(y))) {
+            await loadYearData(y);
+        }
+    }
+    ms.fullTextReady = true;
+    state.fullTextReady = true;
+    document.getElementById('searchStatus').textContent = '全文搜索就绪';
+
+    // 重新搜索
+    const results = ms.meta.filter(a => {
+        if (bo && !a.h) return false;
+        let matched = false;
+        if (scope === 'all') {
+            const metaData = (a.t + ' ' + a.a + ' ' + a.s).toLowerCase();
+            if (metaData.includes(query)) matched = true;
+        }
+        if (!matched && a.h) {
+            const yd = ms.yearData[String(a.y)];
+            if (yd && yd[a.u] && yd[a.u].b) {
+                if (yd[a.u].b.toLowerCase().includes(query)) matched = true;
+            }
+        }
+        return matched;
     });
 
+    finishSearch(results, query, scope, input);
+}
+
+function finishSearch(results, query, scope, input) {
     state.searchResults = results;
     state.currentPage = 1;
 
@@ -517,6 +615,28 @@ async function showArticle(encUrl) {
 
     bodyEl.innerHTML = '<div class="article-loading"><div class="spinner"></div><div>加载正文...</div></div>';
 
+    // 优先从 markdown 文件加载（轻量，单文件按需加载）
+    const mdPath = ms.articleIndex?.[url];
+    if (mdPath) {
+        try {
+            const resp = await fetch(mdPath);
+            if (resp.ok) {
+                const md = await resp.text();
+                // 去掉 markdown 头部的元信息（# 标题到 --- 分隔线之间的内容）
+                let bodyMd = md;
+                const sepIdx = md.indexOf('\n---\n');
+                if (sepIdx >= 0) bodyMd = md.substring(sepIdx + 5).trim();
+                bodyEl.innerHTML = renderMarkdown(bodyMd);
+                const wordCount = countWords(bodyEl.textContent);
+                updateArticleMeta(a, wordCount);
+                return;
+            }
+        } catch (e) {
+            console.error('加载 markdown 文件失败:', e);
+        }
+    }
+
+    // 回退到 year JSON 数据
     if (!ms.loadedYears.has(String(a.y))) {
         const ok = await loadYearData(a.y);
         if (!ok) {
@@ -544,6 +664,7 @@ function countWords(text) {
 
 function renderArticleBody(url, year, bodyEl) {
     const ms = getMagState();
+    if (!ms) return;
     const yd = ms.yearData[String(year)];
     if (yd && yd[url]) {
         const bodyData = yd[url];
@@ -569,12 +690,33 @@ function renderArticleBody(url, year, bodyEl) {
 async function retryShowArticle(encUrl) {
     const url = decodeURIComponent(encUrl);
     const ms = getMagState();
+    if (!ms) return;
     const a = ms.meta.find(x => x.u === url);
     if (!a) return;
-    ms.loadedYears.delete(String(a.y));
-    delete ms.yearData[String(a.y)];
     const bodyEl = document.getElementById('articleBody');
     bodyEl.innerHTML = '<div class="article-loading"><div class="spinner"></div><div>重新加载中...</div></div>';
+
+    // 优先重试 markdown 文件
+    const mdPath = ms.articleIndex?.[url];
+    if (mdPath) {
+        try {
+            const resp = await fetch(mdPath + '?t=' + Date.now());
+            if (resp.ok) {
+                const md = await resp.text();
+                let bodyMd = md;
+                const sepIdx = md.indexOf('\n---\n');
+                if (sepIdx >= 0) bodyMd = md.substring(sepIdx + 5).trim();
+                bodyEl.innerHTML = renderMarkdown(bodyMd);
+                const wordCount = countWords(bodyEl.textContent);
+                updateArticleMeta(a, wordCount);
+                return;
+            }
+        } catch (e) {}
+    }
+
+    // 回退到 year JSON
+    ms.loadedYears.delete(String(a.y));
+    delete ms.yearData[String(a.y)];
     const ok = await loadYearData(a.y);
     if (!ok) {
         bodyEl.innerHTML = `<div class="no-body">加载仍然失败<br>
@@ -769,6 +911,11 @@ function renderCatalog() {
     const container = document.getElementById('catalogContent');
     if (state.catalogRendered) return;
     const meta = getMeta();
+    if (meta.length === 0) {
+        state.catalogPending = true;
+        container.innerHTML = '<div class="loading"><div>数据加载中...</div></div>';
+        return;
+    }
     const catalog = {};
     meta.forEach(a => {
         if (!catalog[a.y]) catalog[a.y] = {};
@@ -785,7 +932,7 @@ function renderCatalog() {
         let total = 0;
         issues.forEach(ik => total += Object.values(catalog[year][ik]).reduce((s, arr) => s + arr.length, 0));
         html += `<div class="year-block collapsed" id="yb-${year}">
-            <div class="yb-header" onclick="toggleYear('${year}')">
+            <div class="yb-header" data-year="${year}">
                 <h3>${year}年</h3>
                 <div class="yb-right">
                     <span class="yb-info">${issues.length}期 ｜ ${total}篇</span>
@@ -797,7 +944,30 @@ function renderCatalog() {
     });
     container.innerHTML = html;
     state.catalogRendered = true;
-    if (years.length > 0) toggleYear(years[0]);
+
+    // 事件委托：年份/期数/文章点击
+    container.onclick = function(e) {
+        const ybHeader = e.target.closest('.yb-header');
+        if (ybHeader) {
+            toggleYear(ybHeader.dataset.year);
+            return;
+        }
+        const irHeader = e.target.closest('.ir-header');
+        if (irHeader) {
+            toggleIssue(irHeader.dataset.year, irHeader.dataset.issue);
+            return;
+        }
+        const artItem = e.target.closest('.art-item');
+        if (artItem) {
+            showArticle(artItem.dataset.url);
+            return;
+        }
+    };
+
+    // 自动展开第一年
+    if (years.length > 0) {
+        requestAnimationFrame(() => toggleYear(years[0]));
+    }
 }
 
 function toggleYear(year) {
@@ -818,7 +988,7 @@ function toggleYear(year) {
             let issueTotal = secNames.reduce((s, sn) => s + secs[sn].length, 0);
             const cin = parseInt(ik) <= 14 ? CN[parseInt(ik) - 1] : ik;
             html += `<div class="issue-row collapsed" id="ir-${year}-${ik}">
-                <div class="ir-header" onclick="toggleIssue('${year}','${ik}')">
+                <div class="ir-header" data-year="${year}" data-issue="${ik}">
                     <span class="ir-title">${year}年第${cin}期</span>
                     <div class="ir-right">
                         <span class="ir-count">${issueTotal}篇</span>
@@ -850,12 +1020,13 @@ function toggleIssue(year, ik) {
             arts.forEach(a => {
                 const au = a.a ? ` <span class="ai-author">｜${escHtml(a.a)}</span>` : '';
                 const encUrl = encodeURIComponent(a.u);
-                html += `<div class="art-item" onclick="showArticle('${encUrl}')">${escHtml(a.t)}${au}</div>`;
+                html += `<div class="art-item" data-url="${encUrl}">${escHtml(a.t)}${au}</div>`;
             });
             html += `</div>`;
         });
         body.innerHTML = html;
-        if (!getMagState().loadedYears.has(String(year))) loadYearData(year);
+        const ms = getMagState();
+        if (ms && !ms.loadedYears.has(String(year))) loadYearData(year);
     }
 }
 

@@ -82,7 +82,7 @@ body.about-active { padding-bottom: 0; }
 .home-page {
     min-height: 100vh;
     min-height: 100dvh;
-    background: linear-gradient(180deg, oklch(0.97 0.008 27) 0%, var(--bg) 40%);
+    background: var(--bg);
     display: flex;
     flex-direction: column;
 }
@@ -190,13 +190,13 @@ body.about-active { padding-bottom: 0; }
     background: rgba(0,0,0,0.1);
 }
 .mag-cover-qs {
-    background: linear-gradient(135deg, #c8102e 0%, #8b0000 100%);
+    background: #8b0000;
 }
 .mag-cover-hqwg {
-    background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%);
+    background: #7f1d1d;
 }
 .mag-cover-djyj {
-    background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%);
+    background: #450a0a;
 }
 .mag-cover-inner {
     text-align: center;
@@ -842,8 +842,11 @@ body.article-active .reading-progress { display: block; }
 
 /* ===== Article Page ===== */
 .article-page {
-    min-height: 100vh;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow-y: auto;
     background: var(--bg);
+    z-index: 200;
 }
 .article-page-header {
     background: var(--card);
@@ -974,8 +977,11 @@ body.article-active .reading-progress { display: block; }
 
 /* ===== Section Page ===== */
 .section-page {
-    min-height: 100vh;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow-y: auto;
     background: var(--bg);
+    z-index: 150;
 }
 .section-page-header {
     background: var(--card);
@@ -1083,8 +1089,11 @@ body.article-active .reading-progress { display: block; }
 
 /* ===== About Page ===== */
 .about-page {
-    min-height: 100vh;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow-y: auto;
     background: var(--bg);
+    z-index: 250;
 }
 .about-page-header {
     background: var(--card);

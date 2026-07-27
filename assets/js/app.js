@@ -1,75 +1,215 @@
 'use strict';
 
+/* ===== 杂志配置 ===== */
+const MAGAZINES = {
+    qs: {
+        name: '求是',
+        fullName: '《求是》',
+        color: '#c8102e',
+        colorDark: '#8b0000',
+        dataPath: 'data/qs',
+        yearsPath: 'data/qs/years',
+        source: 'https://www.qstheory.cn/qs/mulu.htm',
+        desc: '中共中央委员会机关刊',
+    },
+    hqwg: {
+        name: '红旗文稿',
+        fullName: '《红旗文稿》',
+        color: '#b91c1c',
+        colorDark: '#7f1d1d',
+        dataPath: 'data/hqwg',
+        yearsPath: 'data/hqwg/years',
+        source: 'https://www.qstheory.cn/hqwglist/mulu.htm',
+        desc: '政治理论半月刊',
+    },
+    djyj: {
+        name: '党建研究',
+        fullName: '《党建研究》',
+        color: '#7f1d1d',
+        colorDark: '#450a0a',
+        dataPath: 'data',
+        yearsPath: 'data/years',
+        source: 'https://djyj.12371.cn/',
+        desc: '党建理论与实践研究月刊',
+    },
+};
+
 /* ===== 状态管理 ===== */
 const state = {
-    meta: [],              // 文章元数据
-    yearData: {},          // {2020: {url: {b, bm}}, ...}
-    loadedYears: new Set(),
-    loadingYears: new Set(),
-    favorites: [],         // 收藏的URL列表
-    currentMode: 'section', // 当前标签：section/catalog/favorites
+    currentMag: null,       // null=首页, 'qs'|'hqwg'|'djyj'
+    magCache: {},           // {qs: {meta, yearData, loadedYears, fullTextReady}, ...}
+    favorites: [],
+    currentMode: 'section',
     currentArticleUrl: null,
-    searchTimer: null,
     fullTextReady: false,
     catalogRendered: false,
     catalogExpanded: new Set(),
-    isSearching: false,    // 是否正在显示搜索结果
-    searchResults: [],     // 当前搜索结果（全部）
-    currentPage: 1,        // 当前页码
-    pageSize: 20,          // 每页显示条数
+    isSearching: false,
+    searchResults: [],
+    currentPage: 1,
+    pageSize: 20,
 };
 
-const CN = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
+const CN = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四'];
 const FAV_KEY = 'djyj_favorites';
 
-/* ===== SVG 图标辅助 ===== */
+/* ===== SVG 辅助 ===== */
 function svgStar(filled) {
-    const id = filled ? 'i-star-fill' : 'i-star';
-    return `<svg class="icon"><use href="#${id}"/></svg>`;
+    return `<svg class="icon"><use href="#${filled ? 'i-star-fill' : 'i-star'}"/></svg>`;
 }
-
 function svgIcon(name) {
     return `<svg class="icon"><use href="#${name}"/></svg>`;
 }
 
-/* ===== 数据加载 ===== */
-async function loadMeta() {
-    try {
-        const resp = await fetch('data/meta.json');
-        state.meta = await resp.json();
-        document.getElementById('totalCount').textContent = state.meta.length;
-        return true;
-    } catch (e) {
-        console.error('加载元数据失败:', e);
-        return false;
+/* ===== 当前杂志数据快捷访问 ===== */
+function getMagState() {
+    if (!state.currentMag) return null;
+    if (!state.magCache[state.currentMag]) {
+        state.magCache[state.currentMag] = {
+            meta: [],
+            yearData: {},
+            loadedYears: new Set(),
+            loadingYears: new Set(),
+            fullTextReady: false,
+        };
+    }
+    return state.magCache[state.currentMag];
+}
+
+function getMeta() { return getMagState()?.meta || []; }
+function getYearData() { return getMagState()?.yearData || {}; }
+
+/* ===== 首页：加载各杂志计数 ===== */
+async function loadHomeCounts() {
+    for (const [key, conf] of Object.entries(MAGAZINES)) {
+        try {
+            const resp = await fetch(`${conf.dataPath}/meta.json`);
+            const meta = await resp.json();
+            const countEl = document.getElementById(`${key}Count`);
+            const issuesEl = document.getElementById(`${key}Issues`);
+            if (countEl) countEl.textContent = meta.length;
+            if (issuesEl) {
+                const issues = [...new Set(meta.map(a => `${a.y}-${a.i}`))].length;
+                issuesEl.textContent = issues;
+            }
+        } catch (e) {
+            console.error(`加载 ${key} 计数失败:`, e);
+        }
     }
 }
 
+/* ===== 进入/退出杂志 ===== */
+function enterMagazine(magKey) {
+    state.currentMag = magKey;
+    const conf = MAGAZINES[magKey];
+
+    // 重置状态
+    state.catalogRendered = false;
+    state.catalogExpanded = new Set();
+    state.isSearching = false;
+    state.currentMode = 'section';
+    state.searchResults = [];
+    state.currentPage = 1;
+
+    // 显示应用页
+    document.getElementById('homePage').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+
+    // 更新标题
+    document.getElementById('magTitle').textContent = conf.fullName;
+    document.documentElement.style.setProperty('--mag-color', conf.color);
+    document.documentElement.style.setProperty('--mag-color-dark', conf.colorDark);
+
+    // 清空搜索
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchStatus').textContent = '加载中...';
+    document.getElementById('searchStatus').className = 'search-status';
+
+    // 重置视图
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('sectionView').classList.add('active');
+    document.querySelectorAll('.nav-tab, .bn-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === 'section');
+    });
+
+    // 加载数据
+    initMagazine(magKey);
+
+    // History
+    history.pushState({ mag: magKey }, '', `#m=${magKey}`);
+    window.scrollTo(0, 0);
+}
+
+function goHome() {
+    // 关闭所有覆盖层
+    document.body.classList.remove('article-active', 'section-active', 'about-active');
+    state.currentMag = null;
+
+    // 重置杂志颜色
+    document.documentElement.style.setProperty('--mag-color', '#c8102e');
+    document.documentElement.style.setProperty('--mag-color-dark', '#7f1d1d');
+
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('homePage').style.display = 'block';
+
+    history.pushState({ home: true }, '', '#');
+    window.scrollTo(0, 0);
+}
+
+async function initMagazine(magKey) {
+    const conf = MAGAZINES[magKey];
+    const ms = getMagState();
+
+    if (ms.meta.length === 0) {
+        try {
+            const resp = await fetch(`${conf.dataPath}/meta.json`);
+            ms.meta = await resp.json();
+        } catch (e) {
+            console.error('加载元数据失败:', e);
+            document.getElementById('sectionContent').innerHTML =
+                '<div class="loading"><div>数据加载失败，请刷新重试</div></div>';
+            return;
+        }
+    }
+
+    document.getElementById('totalCount').textContent = ms.meta.length;
+
+    // 默认显示板块
+    renderSections();
+    loadAllYearsBackground();
+}
+
+/* ===== 数据加载 ===== */
 async function loadYearData(year, retry = 2) {
+    const ms = getMagState();
+    if (!ms) return false;
+    const conf = MAGAZINES[state.currentMag];
     year = String(year);
-    if (state.loadedYears.has(year) || state.loadingYears.has(year)) return state.loadedYears.has(year);
-    state.loadingYears.add(year);
+    if (ms.loadedYears.has(year) || ms.loadingYears.has(year)) return ms.loadedYears.has(year);
+    ms.loadingYears.add(year);
     try {
-        const resp = await fetch(`data/years/${year}.json`);
+        const resp = await fetch(`${conf.yearsPath}/${year}.json`);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        state.yearData[year] = await resp.json();
-        state.loadedYears.add(year);
+        ms.yearData[year] = await resp.json();
+        ms.loadedYears.add(year);
         return true;
     } catch (e) {
         console.error(`加载 ${year} 年数据失败:`, e);
         if (retry > 0) {
             await new Promise(r => setTimeout(r, 800));
-            state.loadingYears.delete(year);
+            ms.loadingYears.delete(year);
             return loadYearData(year, retry - 1);
         }
         return false;
     } finally {
-        state.loadingYears.delete(year);
+        ms.loadingYears.delete(year);
     }
 }
 
 async function loadAllYearsBackground() {
-    const years = [...new Set(state.meta.map(a => a.y))].sort((a, b) => b - a);
+    const ms = getMagState();
+    if (!ms) return;
+    const years = [...new Set(ms.meta.map(a => a.y))].sort((a, b) => b - a);
     const status = document.getElementById('searchStatus');
     status.className = 'search-status loading';
     status.textContent = '全文搜索加载中...';
@@ -78,6 +218,7 @@ async function loadAllYearsBackground() {
         await loadYearData(y);
     }
 
+    ms.fullTextReady = true;
     state.fullTextReady = true;
     status.className = 'search-status ready';
     status.textContent = '全文搜索就绪';
@@ -99,9 +240,7 @@ function loadFavorites() {
 function saveFavorites() {
     try {
         localStorage.setItem(FAV_KEY, JSON.stringify(state.favorites));
-    } catch (e) {
-        console.error('保存收藏失败:', e);
-    }
+    } catch (e) {}
     updateFavBadges();
 }
 
@@ -111,18 +250,14 @@ function isFavorite(url) {
 
 function toggleFavorite(url) {
     const idx = state.favorites.indexOf(url);
-    if (idx >= 0) {
-        state.favorites.splice(idx, 1);
-    } else {
-        state.favorites.unshift(url);
-    }
+    if (idx >= 0) state.favorites.splice(idx, 1);
+    else state.favorites.unshift(url);
     saveFavorites();
 }
 
 function updateFavBadges() {
     const count = state.favorites.length;
-    const badges = document.querySelectorAll('.fav-badge');
-    badges.forEach(b => {
+    document.querySelectorAll('.fav-badge').forEach(b => {
         b.textContent = count;
         b.setAttribute('data-count', count);
     });
@@ -138,14 +273,14 @@ function performSearch() {
     const input = document.getElementById('searchInput');
     const query = input.value.trim().toLowerCase();
     const hasQuery = query.length > 0;
+    const ms = getMagState();
+    if (!ms) return;
 
-    // 有搜索词时切换到搜索视图
     if (hasQuery && !state.isSearching) {
         state.isSearching = true;
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.getElementById('searchView').classList.add('active');
     } else if (!hasQuery && state.isSearching) {
-        // 清空搜索时返回当前标签
         state.isSearching = false;
         state.searchResults = [];
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -160,21 +295,19 @@ function performSearch() {
 
     if (!hasQuery) return;
 
-    const scope = getSearchScope(); // all / title / body
+    const scope = getSearchScope();
     const bo = document.getElementById('bodyOnly').checked;
 
-    let results = state.meta.filter(a => {
+    let results = ms.meta.filter(a => {
         if (bo && !a.h) return false;
         if (query) {
             let matched = false;
-            // 标题搜索（包含标题、作者、板块名）
             if (scope === 'title' || scope === 'all') {
                 const metaData = (a.t + ' ' + a.a + ' ' + a.s).toLowerCase();
                 if (metaData.includes(query)) matched = true;
             }
-            // 正文搜索
-            if (!matched && (scope === 'body' || scope === 'all') && a.h && state.fullTextReady) {
-                const yd = state.yearData[String(a.y)];
+            if (!matched && (scope === 'body' || scope === 'all') && a.h && ms.fullTextReady) {
+                const yd = ms.yearData[String(a.y)];
                 if (yd && yd[a.u] && yd[a.u].b) {
                     if (yd[a.u].b.toLowerCase().includes(query)) matched = true;
                 }
@@ -191,7 +324,7 @@ function performSearch() {
     const scopeLabel = scope === 'all' ? '标题+正文' : (scope === 'title' ? '仅标题' : '仅正文');
     let infoText = `共 ${results.length} 篇文章`;
     if (qDisplay) infoText += `（关键词："${qDisplay}" ｜ 范围：${scopeLabel}）`;
-    if (scope !== 'title' && !state.fullTextReady) infoText += ' · 全文搜索加载中，当前仅搜索标题/作者';
+    if (scope !== 'title' && !ms.fullTextReady) infoText += ' · 全文搜索加载中，当前仅搜索标题/作者';
     document.getElementById('resultInfo').textContent = infoText;
 
     renderSearchPage();
@@ -203,6 +336,7 @@ function renderSearchPage() {
     const pagination = document.getElementById('pagination');
     const query = document.getElementById('searchInput').value.trim().toLowerCase();
     const scope = getSearchScope();
+    const ms = getMagState();
 
     if (results.length === 0) {
         container.innerHTML = '<div class="loading"><div>未找到匹配文章</div></div>';
@@ -226,9 +360,8 @@ function renderSearchPage() {
 
         if (query) {
             titleHtml = highlightText(a.t, query);
-            // 仅在搜索正文或全部时显示正文摘要
             if (a.h && (scope === 'body' || scope === 'all')) {
-                const yd = state.yearData[String(a.y)];
+                const yd = ms.yearData[String(a.y)];
                 const body = (yd && yd[a.u]) ? yd[a.u].b : '';
                 if (body) {
                     const lb = body.toLowerCase();
@@ -243,17 +376,13 @@ function renderSearchPage() {
                     }
                 }
             }
-            // 仅标题搜索时不显示正文摘要，有正文的文章不显示"无正文"
             if (!snippet) {
-                if (scope === 'title') {
-                    snippet = ''; // 标题搜索时不显示摘要
-                } else if (!a.h) {
-                    snippet = '<span style="color:var(--text-3);">无正文</span>';
-                }
+                if (scope === 'title') snippet = '';
+                else if (!a.h) snippet = '<span style="color:var(--text-3);">无正文</span>';
             }
         }
 
-        const ci = a.i <= 12 ? CN[a.i - 1] : a.i;
+        const ci = a.i <= 14 ? CN[a.i - 1] : a.i;
         const isFav = isFavorite(a.u);
         const favClass = isFav ? 'active' : '';
         const favIcon = svgStar(isFav);
@@ -284,14 +413,9 @@ function renderPagination(totalPages) {
         pagination.innerHTML = `<span class="page-info">共 ${state.searchResults.length} 条</span>`;
         return;
     }
-
     let html = '';
     const cur = state.currentPage;
-
-    // 上一页
     html += `<button class="page-btn" onclick="goToPage(${cur - 1})" ${cur <= 1 ? 'disabled' : ''}><svg class="icon" style="width:14px;height:14px;"><use href="#i-chevron" style="transform:rotate(90deg);"/></svg></button>`;
-
-    // 页码按钮（智能显示）
     const pages = [];
     if (totalPages <= 7) {
         for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -304,19 +428,12 @@ function renderPagination(totalPages) {
         if (cur < totalPages - 3) pages.push('...');
         pages.push(totalPages);
     }
-
     pages.forEach(p => {
-        if (p === '...') {
-            html += '<span class="page-ellipsis">…</span>';
-        } else {
-            html += `<button class="page-btn ${p === cur ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`;
-        }
+        if (p === '...') html += '<span class="page-ellipsis">…</span>';
+        else html += `<button class="page-btn ${p === cur ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`;
     });
-
-    // 下一页
     html += `<button class="page-btn" onclick="goToPage(${cur + 1})" ${cur >= totalPages ? 'disabled' : ''}><svg class="icon" style="width:14px;height:14px;"><use href="#i-chevron" style="transform:rotate(-90deg);"/></svg></button>`;
     html += `<span class="page-info">${cur}/${totalPages} 页 · 共 ${state.searchResults.length} 条</span>`;
-
     pagination.innerHTML = html;
 }
 
@@ -336,46 +453,36 @@ function toggleFavFromCard(btn, encUrl) {
     btn.innerHTML = svgStar(active);
 }
 
-/* ===== 文章详情（独立页面 + History API） ===== */
+/* ===== 文章详情 ===== */
 async function showArticle(encUrl) {
     const url = decodeURIComponent(encUrl);
-    const a = state.meta.find(x => x.u === url);
-    if (!a) {
-        alert('未找到该文章');
-        return;
-    }
+    const ms = getMagState();
+    if (!ms) return;
+    const a = ms.meta.find(x => x.u === url);
+    if (!a) { alert('未找到该文章'); return; }
 
     state.currentArticleUrl = url;
-    const ci = a.i <= 12 ? CN[a.i - 1] : a.i;
+    const ci = a.i <= 14 ? CN[a.i - 1] : a.i;
 
-    // 填充文章页头
     document.getElementById('articleTitle').textContent = a.t;
     updateArticleMeta(a, 0);
 
-    // 原文链接
     const origLink = document.getElementById('articleOrigLink');
-    if (a.u) {
-        origLink.href = a.u;
-        origLink.style.display = '';
-    } else {
-        origLink.style.display = 'none';
-    }
+    if (a.u) { origLink.href = a.u; origLink.style.display = ''; }
+    else origLink.style.display = 'none';
 
-    // 收藏按钮状态
     const favBtn = document.getElementById('articleFavBtn');
     const isFav = isFavorite(url);
     favBtn.classList.toggle('active', isFav);
     favBtn.innerHTML = svgStar(isFav);
 
     const bodyEl = document.getElementById('articleBody');
-
-    // 切换到文章页面
     document.body.classList.add('article-active');
     window.scrollTo(0, 0);
 
-    // History API：压入历史记录
+    const magParam = state.currentMag;
     if (!history.state || history.state.article !== encUrl) {
-        history.pushState({ article: encUrl }, '', `#a=${encUrl}`);
+        history.pushState({ article: encUrl, mag: magParam }, '', `#m=${magParam}&a=${encUrl}`);
     }
 
     if (!a.h) {
@@ -385,8 +492,7 @@ async function showArticle(encUrl) {
 
     bodyEl.innerHTML = '<div class="article-loading"><div class="spinner"></div><div>加载正文...</div></div>';
 
-    // 确保年份数据已加载（含重试）
-    if (!state.loadedYears.has(String(a.y))) {
+    if (!ms.loadedYears.has(String(a.y))) {
         const ok = await loadYearData(a.y);
         if (!ok) {
             bodyEl.innerHTML = `<div class="no-body">正文数据加载失败<br>
@@ -400,22 +506,20 @@ async function showArticle(encUrl) {
 }
 
 function updateArticleMeta(a, wordCount) {
-    const ci = a.i <= 12 ? CN[a.i - 1] : a.i;
+    const ci = a.i <= 14 ? CN[a.i - 1] : a.i;
     let meta = `${a.y}年第${ci}期 ｜ ${escHtml(a.s)}${a.a ? ' ｜ ' + escHtml(a.a) : ''}`;
-    if (wordCount > 0) {
-        meta += ` ｜ 约 ${wordCount} 字`;
-    }
+    if (wordCount > 0) meta += ` ｜ 约 ${wordCount} 字`;
     document.getElementById('articleMeta').innerHTML = meta;
 }
 
 function countWords(text) {
     if (!text) return 0;
-    // 移除空白字符后计算长度（中文按字计数）
     return text.replace(/\s/g, '').length;
 }
 
 function renderArticleBody(url, year, bodyEl) {
-    const yd = state.yearData[String(year)];
+    const ms = getMagState();
+    const yd = ms.yearData[String(year)];
     if (yd && yd[url]) {
         const bodyData = yd[url];
         if (bodyData.bm) {
@@ -426,8 +530,7 @@ function renderArticleBody(url, year, bodyEl) {
         } else {
             bodyEl.innerHTML = '<div class="no-body">正文内容为空</div>';
         }
-        // 渲染后计算字数并更新页头信息
-        const a = state.meta.find(x => x.u === url);
+        const a = ms.meta.find(x => x.u === url);
         if (a) {
             const wordCount = countWords(bodyEl.textContent);
             updateArticleMeta(a, wordCount);
@@ -440,16 +543,13 @@ function renderArticleBody(url, year, bodyEl) {
 
 async function retryShowArticle(encUrl) {
     const url = decodeURIComponent(encUrl);
-    const a = state.meta.find(x => x.u === url);
+    const ms = getMagState();
+    const a = ms.meta.find(x => x.u === url);
     if (!a) return;
-
-    // 清除已加载状态强制重新加载
-    state.loadedYears.delete(String(a.y));
-    delete state.yearData[String(a.y)];
-
+    ms.loadedYears.delete(String(a.y));
+    delete ms.yearData[String(a.y)];
     const bodyEl = document.getElementById('articleBody');
     bodyEl.innerHTML = '<div class="article-loading"><div class="spinner"></div><div>重新加载中...</div></div>';
-
     const ok = await loadYearData(a.y);
     if (!ok) {
         bodyEl.innerHTML = `<div class="no-body">加载仍然失败<br>
@@ -458,7 +558,6 @@ async function retryShowArticle(encUrl) {
             <a href="${a.u}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;color:var(--primary);">直接查看原文</a></div>`;
         return;
     }
-
     renderArticleBody(url, a.y, bodyEl);
 }
 
@@ -479,6 +578,8 @@ function goBack() {
         document.body.classList.contains('section-active') ||
         document.body.classList.contains('about-active')) {
         history.back();
+    } else if (state.currentMag) {
+        goHome();
     }
 }
 
@@ -488,12 +589,17 @@ function closeArticlePage() {
     document.getElementById('readingProgress').style.width = '0%';
 }
 
-/* ===== 关于页面（独立全屏页面 + History API） ===== */
+/* ===== 关于页面 ===== */
 function showAboutPage() {
     document.body.classList.add('about-active');
     window.scrollTo(0, 0);
     if (!history.state || !history.state.about) {
-        history.pushState({ about: true }, '', '#about');
+        const magParam = state.currentMag;
+        if (magParam) {
+            history.pushState({ about: true, mag: magParam }, '', `#m=${magParam}&about`);
+        } else {
+            history.pushState({ about: true }, '', '#about');
+        }
     }
 }
 
@@ -540,10 +646,9 @@ function renderMarkdown(md) {
 
 /* ===== 板块视图 ===== */
 function renderSections() {
+    const meta = getMeta();
     const counter = {};
-    state.meta.forEach(a => {
-        counter[a.s] = (counter[a.s] || 0) + 1;
-    });
+    meta.forEach(a => { counter[a.s] = (counter[a.s] || 0) + 1; });
     const sorted = Object.entries(counter).sort((a, b) => b[1] - a[1]);
     const maxCount = sorted.length > 0 ? sorted[0][1] : 1;
 
@@ -560,12 +665,11 @@ function renderSections() {
     container.innerHTML = html;
 }
 
-/* ===== 板块文章页面（独立全屏页面 + History API） ===== */
+/* ===== 板块文章页面 ===== */
 function showSectionPage(encName) {
     const name = decodeURIComponent(encName);
-    const articles = state.meta
-        .filter(a => a.s === name)
-        .sort((a, b) => b.y - a.y || a.i - b.i);
+    const meta = getMeta();
+    const articles = meta.filter(a => a.s === name).sort((a, b) => b.y - a.y || a.i - b.i);
 
     document.getElementById('sectionPageName').textContent = name;
     document.getElementById('sectionPageCount').textContent = `${articles.length} 篇文章`;
@@ -575,50 +679,37 @@ function showSectionPage(encName) {
     document.body.classList.add('section-active');
     window.scrollTo(0, 0);
 
+    const magParam = state.currentMag;
     if (!history.state || history.state.section !== encName) {
-        history.pushState({ section: encName }, '', `#s=${encName}`);
+        history.pushState({ section: encName, mag: magParam }, '', `#m=${magParam}&s=${encName}`);
     }
 }
 
 function renderSectionPageBody(articles, query) {
     const body = document.getElementById('sectionPageBody');
     body.innerHTML = '';
-
     let filtered = articles;
     if (query) {
         const lq = query.toLowerCase();
-        filtered = articles.filter(a =>
-            (a.t + ' ' + a.a).toLowerCase().includes(lq)
-        );
+        filtered = articles.filter(a => (a.t + ' ' + a.a).toLowerCase().includes(lq));
     }
-
     if (filtered.length === 0) {
         body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3);">未找到匹配文章</div>';
         return;
     }
-
     const yg = {};
-    filtered.forEach(a => {
-        if (!yg[a.y]) yg[a.y] = [];
-        yg[a.y].push(a);
-    });
-
+    filtered.forEach(a => { if (!yg[a.y]) yg[a.y] = []; yg[a.y].push(a); });
     const years = Object.keys(yg).sort((a, b) => parseInt(b) - parseInt(a));
     let html = '';
-
     years.forEach(year => {
         const ya = yg[year];
         const ig = {};
-        ya.forEach(a => {
-            if (!ig[a.i]) ig[a.i] = [];
-            ig[a.i].push(a);
-        });
+        ya.forEach(a => { if (!ig[a.i]) ig[a.i] = []; ig[a.i].push(a); });
         const issues = Object.keys(ig).sort((a, b) => parseInt(a) - parseInt(b));
-
         html += `<div class="sp-year-group"><div class="sp-year-header">${year}年 (${ya.length}篇)</div>`;
         issues.forEach(iss => {
             const ia = ig[iss];
-            const cin = parseInt(iss) <= 12 ? CN[parseInt(iss) - 1] : iss;
+            const cin = parseInt(iss) <= 14 ? CN[parseInt(iss) - 1] : iss;
             html += `<div class="sp-issue-group"><div class="sp-issue-label">${cin}期</div>`;
             ia.forEach(a => {
                 const author = a.a ? `<span class="author">｜${escHtml(a.a)}</span>` : '';
@@ -633,16 +724,14 @@ function renderSectionPageBody(articles, query) {
         });
         html += `</div>`;
     });
-
     body.innerHTML = html;
 }
 
 function filterSectionPage() {
     const q = document.getElementById('sectionPageSearch').value.trim();
     const name = document.getElementById('sectionPageName').textContent;
-    const articles = state.meta
-        .filter(a => a.s === name)
-        .sort((a, b) => b.y - a.y || a.i - b.i);
+    const meta = getMeta();
+    const articles = meta.filter(a => a.s === name).sort((a, b) => b.y - a.y || a.i - b.i);
     renderSectionPageBody(articles, q);
 }
 
@@ -650,30 +739,26 @@ function closeSectionPage() {
     document.body.classList.remove('section-active');
 }
 
-/* ===== 目录视图（懒加载） ===== */
+/* ===== 目录视图 ===== */
 function renderCatalog() {
     const container = document.getElementById('catalogContent');
     if (state.catalogRendered) return;
-
+    const meta = getMeta();
     const catalog = {};
-    state.meta.forEach(a => {
+    meta.forEach(a => {
         if (!catalog[a.y]) catalog[a.y] = {};
         if (!catalog[a.y][a.i]) catalog[a.y][a.i] = {};
         if (!catalog[a.y][a.i][a.s]) catalog[a.y][a.i][a.s] = [];
         catalog[a.y][a.i][a.s].push(a);
     });
-
     state.catalogData = catalog;
-
     const years = Object.keys(catalog).sort((a, b) => parseInt(b) - parseInt(a));
     const chevron = svgIcon('i-chevron');
     let html = '';
-
     years.forEach(year => {
         const issues = Object.keys(catalog[year]).sort((a, b) => parseInt(a) - parseInt(b));
         let total = 0;
         issues.forEach(ik => total += Object.values(catalog[year][ik]).reduce((s, arr) => s + arr.length, 0));
-
         html += `<div class="year-block collapsed" id="yb-${year}">
             <div class="yb-header" onclick="toggleYear('${year}')">
                 <h3>${year}年</h3>
@@ -685,7 +770,6 @@ function renderCatalog() {
             <div class="yb-body" id="yb-body-${year}"></div>
         </div>`;
     });
-
     container.innerHTML = html;
     state.catalogRendered = true;
     if (years.length > 0) toggleYear(years[0]);
@@ -696,22 +780,18 @@ function toggleYear(year) {
     if (!block) return;
     const body = document.getElementById(`yb-body-${year}`);
     const wasCollapsed = block.classList.contains('collapsed');
-
     block.classList.toggle('collapsed');
-
     if (wasCollapsed && !state.catalogExpanded.has(`y-${year}`)) {
         state.catalogExpanded.add(`y-${year}`);
         const catalog = state.catalogData;
         const issues = Object.keys(catalog[year]).sort((a, b) => parseInt(a) - parseInt(b));
         const chevron = svgIcon('i-chevron');
         let html = '';
-
         issues.forEach(ik => {
             const secs = catalog[year][ik];
             const secNames = Object.keys(secs);
             let issueTotal = secNames.reduce((s, sn) => s + secs[sn].length, 0);
-            const cin = parseInt(ik) <= 12 ? CN[parseInt(ik) - 1] : ik;
-
+            const cin = parseInt(ik) <= 14 ? CN[parseInt(ik) - 1] : ik;
             html += `<div class="issue-row collapsed" id="ir-${year}-${ik}">
                 <div class="ir-header" onclick="toggleIssue('${year}','${ik}')">
                     <span class="ir-title">${year}年第${cin}期</span>
@@ -723,7 +803,6 @@ function toggleYear(year) {
                 <div class="ir-body" id="ir-body-${year}-${ik}"></div>
             </div>`;
         });
-
         body.innerHTML = html;
     }
 }
@@ -733,16 +812,13 @@ function toggleIssue(year, ik) {
     if (!row) return;
     const body = document.getElementById(`ir-body-${year}-${ik}`);
     const wasCollapsed = row.classList.contains('collapsed');
-
     row.classList.toggle('collapsed');
-
     if (wasCollapsed && !state.catalogExpanded.has(`i-${year}-${ik}`)) {
         state.catalogExpanded.add(`i-${year}-${ik}`);
         const catalog = state.catalogData;
         const secs = catalog[year][ik];
         const secNames = Object.keys(secs);
         let html = '';
-
         secNames.forEach(sn => {
             const arts = secs[sn];
             html += `<div class="sec-group"><div class="sg-title">${escHtml(sn)} <span class="count">(${arts.length}篇)</span></div>`;
@@ -753,19 +829,14 @@ function toggleIssue(year, ik) {
             });
             html += `</div>`;
         });
-
         body.innerHTML = html;
-
-        if (!state.loadedYears.has(String(year))) {
-            loadYearData(year);
-        }
+        if (!getMagState().loadedYears.has(String(year))) loadYearData(year);
     }
 }
 
 /* ===== 收藏视图 ===== */
 function renderFavorites() {
     const container = document.getElementById('favoritesContent');
-
     if (state.favorites.length === 0) {
         container.innerHTML = `<div class="fav-empty">
             <div class="fav-empty-icon">${svgIcon('i-bookmark')}</div>
@@ -774,9 +845,13 @@ function renderFavorites() {
         </div>`;
         return;
     }
-
+    // 从所有已加载的杂志中查找收藏的文章
+    const allMeta = [];
+    for (const ms of Object.values(state.magCache)) {
+        allMeta.push(...ms.meta);
+    }
     const favArticles = state.favorites
-        .map(url => state.meta.find(a => a.u === url))
+        .map(url => allMeta.find(a => a.u === url))
         .filter(a => a);
 
     let html = `<div class="fav-header">
@@ -788,7 +863,7 @@ function renderFavorites() {
     </div>`;
 
     favArticles.forEach(a => {
-        const ci = a.i <= 12 ? CN[a.i - 1] : a.i;
+        const ci = a.i <= 14 ? CN[a.i - 1] : a.i;
         const encUrl = encodeURIComponent(a.u);
         html += `<div class="result-card" onclick="showArticle('${encUrl}')">
             <button class="rc-fav-btn active" onclick="event.stopPropagation(); toggleFavFromCard(this, '${encUrl}')">${svgStar(true)}</button>
@@ -800,7 +875,6 @@ function renderFavorites() {
             </div>
         </div>`;
     });
-
     container.innerHTML = html;
 }
 
@@ -822,29 +896,21 @@ function clearFavorites() {
     renderFavorites();
 }
 
-/* ===== 导航（3标签 + 搜索自动切换） ===== */
+/* ===== 导航 ===== */
 function switchMode(mode) {
     state.currentMode = mode;
     state.isSearching = false;
-
-    // 清空搜索框
     document.getElementById('searchInput').value = '';
-
-    // 更新标签激活状态
     document.querySelectorAll('.nav-tab, .bn-item').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === mode);
     });
-
-    // 切换视图
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     const viewMap = { section: 'sectionView', catalog: 'catalogView', favorites: 'favoritesView' };
     const view = document.getElementById(viewMap[mode]);
     if (view) view.classList.add('active');
-
     if (mode === 'section') renderSections();
     else if (mode === 'catalog') renderCatalog();
     else if (mode === 'favorites') renderFavorites();
-
     window.scrollTo(0, 0);
 }
 
@@ -873,23 +939,38 @@ function highlightText(text, query) {
     return result;
 }
 
+/* ===== URL 路由解析 ===== */
+function parseHash() {
+    const hash = location.hash;
+    if (!hash || hash === '#') return { page: 'home' };
+    if (hash === '#about') return { page: 'about' };
+    
+    const params = new URLSearchParams(hash.substring(1));
+    const mag = params.get('m');
+    const article = params.get('a');
+    const section = params.get('s');
+    const about = params.has('about');
+    
+    if (!mag) return { page: 'home' };
+    return { page: 'magazine', mag, article, section, about };
+}
+
 /* ===== 初始化 ===== */
 async function init() {
     loadFavorites();
     updateFavBadges();
 
-    // 标签导航
+    // 导航按钮
     document.querySelectorAll('.nav-tab, .bn-item').forEach(btn => {
         btn.addEventListener('click', () => switchMode(btn.dataset.mode));
     });
 
-    // 搜索：点击按钮或回车触发
+    // 搜索
     const searchInput = document.getElementById('searchInput');
     document.getElementById('searchBtn').addEventListener('click', performSearch);
     searchInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') performSearch();
     });
-
     document.getElementById('bodyOnly').addEventListener('change', performSearch);
     document.querySelectorAll('input[name="searchScope"]').forEach(r => {
         r.addEventListener('change', () => {
@@ -897,7 +978,7 @@ async function init() {
         });
     });
 
-    // 键盘快捷键
+    // 键盘
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
             if (document.body.classList.contains('article-active') ||
@@ -908,7 +989,7 @@ async function init() {
         }
     });
 
-    // History API：浏览器后退
+    // History API
     window.addEventListener('popstate', e => {
         if (document.body.classList.contains('article-active')) {
             closeArticlePage();
@@ -916,42 +997,35 @@ async function init() {
             closeSectionPage();
         } else if (document.body.classList.contains('about-active')) {
             closeAboutPage();
+        } else if (state.currentMag && !e.state?.mag) {
+            // 从杂志页返回首页
+            state.currentMag = null;
+            document.documentElement.style.setProperty('--mag-color', '#c8102e');
+            document.documentElement.style.setProperty('--mag-color-dark', '#7f1d1d');
+            document.getElementById('app').style.display = 'none';
+            document.getElementById('homePage').style.display = 'block';
+            window.scrollTo(0, 0);
         }
     });
 
-    // 阅读进度条
+    // 阅读进度
     window.addEventListener('scroll', updateReadingProgress, { passive: true });
 
-    // 加载数据
-    const ok = await loadMeta();
-    if (!ok) {
-        document.getElementById('sectionContent').innerHTML =
-            '<div class="loading"><div>数据加载失败，请刷新重试</div></div>';
-        return;
-    }
+    // 加载首页计数
+    loadHomeCounts();
 
-    // 默认显示板块视图
-    renderSections();
-    loadAllYearsBackground();
-
-    // 支持直接通过 URL 打开文章
-    if (location.hash.startsWith('#a=')) {
-        const encUrl = location.hash.substring(3);
-        if (encUrl) {
-            setTimeout(() => showArticle(encUrl), 300);
+    // URL 路由
+    const route = parseHash();
+    if (route.page === 'magazine' && MAGAZINES[route.mag]) {
+        enterMagazine(route.mag);
+        if (route.about) {
+            setTimeout(() => showAboutPage(), 500);
+        } else if (route.article) {
+            setTimeout(() => showArticle(route.article), 500);
+        } else if (route.section) {
+            setTimeout(() => showSectionPage(route.section), 500);
         }
-    }
-
-    // 支持直接通过 URL 打开板块页面
-    if (location.hash.startsWith('#s=')) {
-        const encName = location.hash.substring(3);
-        if (encName) {
-            setTimeout(() => showSectionPage(encName), 300);
-        }
-    }
-
-    // 支持直接通过 URL 打开关于页面
-    if (location.hash === '#about') {
+    } else if (route.page === 'about') {
         setTimeout(() => showAboutPage(), 300);
     }
 }

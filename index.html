@@ -3,11 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-<meta name="theme-color" content="#7f1d1d">
-<meta name="description" content="《党建研究》杂志全文检索系统，覆盖2020-2026年全期">
-<title>《党建研究》全文检索</title>
-<link rel="stylesheet" href="assets/css/style.css?v=20260727a">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237f1d1d' stroke-width='2'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg>">
+<meta name="theme-color" content="#8b0000">
+<meta name="description" content="党内刊物检索系统 — 求是、红旗文稿、党建研究">
+<title>党内刊物</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css?v=20260728b">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b0000' stroke-width='2'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg>">
 </head>
 <body>
 
@@ -26,19 +29,84 @@
 <symbol id="i-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
 <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
 <symbol id="i-github" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
 </svg>
 
-<!-- ===== 主应用 ===== -->
-<div id="app">
-<!-- 头部 -->
+<!-- ===== 首页（三杂志导航） ===== -->
+<div id="homePage" class="home-page">
+    <header class="home-header">
+        <div class="home-header-inner">
+            <h1 class="home-title">党内刊物</h1>
+            <p class="home-subtitle">理论 · 党建 · 时政</p>
+            <button class="home-about-btn" onclick="showAboutPage()" title="关于本站"><svg class="icon"><use href="#i-info"/></svg></button>
+        </div>
+    </header>
+    <div class="home-body">
+        <div class="magazine-grid">
+            <div class="magazine-card" onclick="enterMagazine('qs')">
+                <div class="mag-cover mag-cover-qs">
+                    <div class="mag-cover-inner">
+                        <div class="mag-cover-title">求是</div>
+                        <div class="mag-cover-sub">QIUSHI</div>
+                        <div class="mag-cover-line"></div>
+                        <div class="mag-cover-edition">中共中央机关刊</div>
+                    </div>
+                </div>
+                <div class="mag-info">
+                    <h2>求是</h2>
+                    <p class="mag-desc">中共中央委员会主办的理论刊物</p>
+                    <p class="mag-meta"><span id="qsCount">-</span> 篇 · <span id="qsIssues">-</span> 期</p>
+                </div>
+            </div>
+
+            <div class="magazine-card" onclick="enterMagazine('hqwg')">
+                <div class="mag-cover mag-cover-hqwg">
+                    <div class="mag-cover-inner">
+                        <div class="mag-cover-title">红旗文稿</div>
+                        <div class="mag-cover-sub">RED FLAG MANUSCRIPT</div>
+                        <div class="mag-cover-line"></div>
+                        <div class="mag-cover-edition">求是杂志社主管主办</div>
+                    </div>
+                </div>
+                <div class="mag-info">
+                    <h2>红旗文稿</h2>
+                    <p class="mag-desc">政治理论半月刊</p>
+                    <p class="mag-meta"><span id="hqwgCount">-</span> 篇 · <span id="hqwgIssues">-</span> 期</p>
+                </div>
+            </div>
+
+            <div class="magazine-card" onclick="enterMagazine('djyj')">
+                <div class="mag-cover mag-cover-djyj">
+                    <div class="mag-cover-inner">
+                        <div class="mag-cover-title">党建研究</div>
+                        <div class="mag-cover-sub">PARTY BUILDING RESEARCH</div>
+                        <div class="mag-cover-line"></div>
+                        <div class="mag-cover-edition">中共中央组织部主管</div>
+                    </div>
+                </div>
+                <div class="mag-info">
+                    <h2>党建研究</h2>
+                    <p class="mag-desc">党建理论与实践研究月刊</p>
+                    <p class="mag-meta"><span id="djyjCount">-</span> 篇 · <span id="djyjIssues">-</span> 期</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="home-footer">
+        <p>公益性学习研究项目 · 仅供内部参考</p>
+    </footer>
+</div>
+
+<!-- ===== 杂志应用页 ===== -->
+<div id="app" style="display:none;">
 <header class="app-header">
-    <h1>《党建研究》全文检索</h1>
-    <p class="app-subtitle">2020-2026 全期 · <span id="totalCount">-</span> 篇文章</p>
+    <button class="header-home-btn" onclick="goHome()" title="返回首页"><svg class="icon"><use href="#i-home"/></svg></button>
+    <h1 id="magTitle">—</h1>
+    <p class="app-subtitle"><span id="totalCount">-</span> 篇文章</p>
     <div class="search-status" id="searchStatus">加载中...</div>
     <button class="header-about-btn" onclick="showAboutPage()" title="关于"><svg class="icon"><use href="#i-info"/></svg></button>
 </header>
 
-<!-- 搜索栏（标题下方，始终显示） -->
 <section class="search-bar" id="searchBar">
     <div class="search-box">
         <svg class="icon search-icon"><use href="#i-search"/></svg>
@@ -55,14 +123,12 @@
     </div>
 </section>
 
-<!-- 桌面端导航（3个标签） -->
 <nav class="nav-tabs desktop-only">
     <button class="nav-tab active" data-mode="section"><svg class="icon"><use href="#i-grid"/></svg>板块</button>
     <button class="nav-tab" data-mode="catalog"><svg class="icon"><use href="#i-list"/></svg>目录</button>
     <button class="nav-tab" data-mode="favorites"><svg class="icon"><use href="#i-bookmark"/></svg>收藏 <span class="fav-badge" id="favBadgeTop">0</span></button>
 </nav>
 
-<!-- 内容区 -->
 <main class="content">
     <div class="view" id="searchView">
         <div class="result-info" id="resultInfo"></div>
@@ -80,7 +146,6 @@
     </div>
 </main>
 
-<!-- 底部导航（移动端，3个标签） -->
 <nav class="bottom-nav mobile-only">
     <button class="bn-item active" data-mode="section">
         <svg class="icon"><use href="#i-grid"/></svg><span class="bn-label">板块</span>
@@ -95,7 +160,7 @@
 </nav>
 </div><!-- /#app -->
 
-<!-- ===== 关于页面（独立全屏页面） ===== -->
+<!-- ===== 关于页面 ===== -->
 <div id="aboutPage" class="about-page">
     <header class="about-page-header">
         <button class="ab-back-btn" onclick="goBack()"><svg class="icon"><use href="#i-arrow-left"/></svg><span>返回</span></button>
@@ -104,11 +169,27 @@
     <div class="about-page-body">
         <div class="about-section">
             <h2>项目简介</h2>
-            <p>本网站是一个开源的《党建研究》杂志全文检索系统，收录了 2020 年至 2026 年共 68 期、1652 篇文章，提供按板块浏览、目录导航、全文搜索和文章收藏等功能，支持移动端与桌面端自适应访问。</p>
+            <p>本网站是党内刊物检索阅读系统，收录三种重要理论刊物：</p>
+            <ul class="about-mag-list">
+                <li><strong>《求是》</strong> — 中共中央委员会机关刊</li>
+                <li><strong>《红旗文稿》</strong> — 求是杂志社主管主办的政治理论半月刊</li>
+                <li><strong>《党建研究》</strong> — 中共中央组织部主管的党建理论与实践研究月刊</li>
+            </ul>
+            <p>提供按板块浏览、目录导航、全文搜索和文章收藏等功能，支持移动端与桌面端自适应访问。</p>
         </div>
         <div class="about-section">
             <h2>内容来源</h2>
-            <p>所有文章内容均来源于共产党员网《党建研究》专栏：</p>
+            <p><strong>《求是》</strong> — 求是网：</p>
+            <a class="about-link" href="https://www.qstheory.cn/qs/mulu.htm" target="_blank" rel="noopener">
+                <svg class="icon"><use href="#i-external"/></svg>
+                https://www.qstheory.cn/qs/mulu.htm
+            </a>
+            <p><strong>《红旗文稿》</strong> — 求是网：</p>
+            <a class="about-link" href="https://www.qstheory.cn/hqwglist/mulu.htm" target="_blank" rel="noopener">
+                <svg class="icon"><use href="#i-external"/></svg>
+                https://www.qstheory.cn/hqwglist/mulu.htm
+            </a>
+            <p><strong>《党建研究》</strong> — 共产党员网：</p>
             <a class="about-link" href="https://djyj.12371.cn/01/" target="_blank" rel="noopener">
                 <svg class="icon"><use href="#i-external"/></svg>
                 https://djyj.12371.cn/01/
@@ -117,8 +198,10 @@
         </div>
         <div class="about-section">
             <h2>数据更新</h2>
-            <p>最近一次数据采集更新时间：<strong>2026 年 7 月 27 日</strong></p>
-            <p>涵盖范围：2020 年第 12 期 至 2026 年第 7 期</p>
+            <p>最近一次数据采集更新时间：<strong>2026 年 7 月 28 日</strong></p>
+            <p>《党建研究》：2020 年第 12 期 至 2026 年第 7 期</p>
+            <p>《求是》：2026 年第 1 期 至 2026 年第 14 期</p>
+            <p>《红旗文稿》：2026 年第 1 期 至 2026 年第 14 期</p>
         </div>
         <div class="about-section">
             <h2>开源项目</h2>
@@ -138,7 +221,7 @@
     </div>
 </div>
 
-<!-- ===== 文章页面（独立全屏页面） ===== -->
+<!-- ===== 文章页面 ===== -->
 <div id="articlePage" class="article-page">
     <div class="reading-progress" id="readingProgress"></div>
     <header class="article-page-header">
@@ -153,7 +236,7 @@
     <div class="article-page-body" id="articleBody"></div>
 </div>
 
-<!-- ===== 板块文章页面（独立全屏页面） ===== -->
+<!-- ===== 板块文章页面 ===== -->
 <div id="sectionPage" class="section-page">
     <header class="section-page-header">
         <button class="sp-back-btn" onclick="goBack()"><svg class="icon"><use href="#i-arrow-left"/></svg><span>返回</span></button>
@@ -166,6 +249,6 @@
     <div class="section-page-body" id="sectionPageBody"></div>
 </div>
 
-<script src="assets/js/app.js?v=20260727a"></script>
+<script src="assets/js/app.js?v=20260728b"></script>
 </body>
 </html>

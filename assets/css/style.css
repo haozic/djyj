@@ -890,7 +890,7 @@ body.article-active .reading-progress { display: block; }
     background: oklch(0.95 0.04 65);
 }
 .ap-title {
-    font-size: 19px;
+    font-size: 21px;
     font-weight: 700;
     line-height: 1.5;
     color: var(--text);
@@ -898,7 +898,7 @@ body.article-active .reading-progress { display: block; }
     padding-right: 84px;
 }
 .ap-meta {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-3);
 }
 
@@ -908,12 +908,12 @@ body.article-active .reading-progress { display: block; }
     margin: 0 auto;
     padding: 24px 18px 56px;
     font-family: var(--font-serif);
-    font-size: 16px;
-    line-height: 1.95;
+    font-size: 20px;
+    line-height: 2.05;
     color: var(--text);
 }
 .article-page-body p {
-    margin-bottom: 14px;
+    margin-bottom: 16px;
     text-indent: 2em;
     text-align: justify;
     text-justify: inter-ideograph;
@@ -923,23 +923,23 @@ body.article-active .reading-progress { display: block; }
     text-align: left;
     font-weight: 700;
     color: var(--text);
-    margin-top: 22px;
-    font-size: 17px;
+    margin-top: 24px;
+    font-size: 22px;
 }
 .article-page-body p.md-bold {
     text-indent: 0;
     text-align: left;
     font-weight: 700;
     color: var(--mag-color-dark, var(--primary-dark));
-    margin-top: 16px;
+    margin-top: 18px;
 }
 .article-page-body p.md-subheading {
     text-indent: 0;
     text-align: left;
     font-weight: 700;
     color: var(--text);
-    font-size: 16px;
-    margin-top: 20px;
+    font-size: 20px;
+    margin-top: 22px;
 }
 .article-page-body strong { font-weight: 700; }
 .article-page-body .no-body {
@@ -1275,12 +1275,12 @@ body.article-active .reading-progress { display: block; }
     /* Article */
     .article-page-body {
         padding: 40px 48px 56px;
-        font-size: 17px;
+        font-size: 19px;
         line-height: 2.05;
     }
     .article-page-body p { margin-bottom: 16px; }
-    .article-page-body p.md-heading { font-size: 18px; }
-    .ap-title { font-size: 24px; padding-right: 90px; }
+    .article-page-body p.md-heading { font-size: 21px; }
+    .ap-title { font-size: 26px; padding-right: 90px; }
     .article-page-header { padding: 14px 24px 16px; }
     .ap-back-btn { font-size: 15px; }
 

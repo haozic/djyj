@@ -91,6 +91,19 @@ async function loadHomeCounts() {
         try {
             const resp = await fetch(`${conf.dataPath}/meta.json`);
             const meta = await resp.json();
+            // 缓存 meta 到 magCache，供收藏列表跨杂志查找
+            if (!state.magCache[key]) {
+                state.magCache[key] = {
+                    meta: [],
+                    yearData: {},
+                    loadedYears: new Set(),
+                    loadingYears: new Set(),
+                    fullTextReady: false,
+                    articleIndex: null,
+                    indexLoaded: false,
+                };
+            }
+            state.magCache[key].meta = meta;
             const countEl = document.getElementById(`${key}Count`);
             const issuesEl = document.getElementById(`${key}Issues`);
             if (countEl) countEl.textContent = meta.length;
@@ -579,13 +592,43 @@ function toggleFavFromCard(btn, encUrl) {
 /* ===== 文章详情 ===== */
 async function showArticle(encUrl) {
     const url = decodeURIComponent(encUrl);
-    const ms = getMagState();
-    if (!ms) return;
-    const a = ms.meta.find(x => x.u === url);
-    if (!a) { alert('未找到该文章'); return; }
+    let ms = getMagState();
+    let idx = -1;
+
+    // 在当前杂志中查找
+    if (ms && ms.meta.length > 0) {
+        idx = ms.meta.findIndex(a => a.u === url);
+    }
+
+    // 跨杂志查找（如从收藏列表点击）
+    if (idx < 0) {
+        for (const [magKey, magState] of Object.entries(state.magCache)) {
+            if (magState.meta.length > 0) {
+                const found = magState.meta.findIndex(a => a.u === url);
+                if (found >= 0) {
+                    if (state.currentMag !== magKey) {
+                        enterMagazine(magKey);
+                        setTimeout(() => showArticle(encUrl), 600);
+                        return;
+                    }
+                    ms = magState;
+                    idx = found;
+                    break;
+                }
+            }
+        }
+    }
+
+    // meta 尚未加载，等待重试
+    if (!ms || ms.meta.length === 0) {
+        setTimeout(() => showArticle(encUrl), 500);
+        return;
+    }
+    if (idx < 0) return;
+    const a = ms.meta[idx];
 
     state.currentArticleUrl = url;
-    const ci = a.i <= 14 ? CN[a.i - 1] : a.i;
+    state.currentArticleIdx = idx;
 
     document.getElementById('articleTitle').textContent = a.t;
     updateArticleMeta(a, 0);
@@ -603,9 +646,9 @@ async function showArticle(encUrl) {
     document.body.classList.add('article-active');
     window.scrollTo(0, 0);
 
-    const magParam = state.currentMag;
-    if (!history.state || history.state.article !== encUrl) {
-        history.pushState({ article: encUrl, mag: magParam }, '', `#m=${magParam}&a=${encUrl}`);
+    const magKey = state.currentMag;
+    if (!history.state || history.state.articleUrl !== url) {
+        history.pushState({ articleUrl: url, mag: magKey }, '', `#m=${magKey}&a=${encUrl}`);
     }
 
     if (!a.h) {
@@ -644,7 +687,7 @@ async function showArticle(encUrl) {
         if (!ok) {
             bodyEl.innerHTML = `<div class="no-body">正文数据加载失败<br>
                 <small>可能是网络不稳定，请重试</small><br>
-                <button class="retry-btn" onclick="retryShowArticle('${encodeURIComponent(url)}')">重新加载</button></div>`;
+                <button class="retry-btn" onclick="retryShowArticle('${encUrl}')">重新加载</button></div>`;
             return;
         }
     }
@@ -724,7 +767,7 @@ async function retryShowArticle(encUrl) {
     if (!ok) {
         bodyEl.innerHTML = `<div class="no-body">加载仍然失败<br>
             <small>请检查网络后重试，或访问原文链接</small><br>
-            <button class="retry-btn" onclick="retryShowArticle('${encodeURIComponent(url)}')">再次重试</button>
+            <button class="retry-btn" onclick="retryShowArticle('${encUrl}')">再次重试</button>
             <a href="${a.u}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;color:var(--primary);">直接查看原文</a></div>`;
         return;
     }

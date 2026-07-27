@@ -674,8 +674,7 @@ function renderArticleBody(url, year, bodyEl) {
             bodyEl.innerHTML = renderMarkdown(bodyData.bm);
         } else if (bodyData.b) {
             const body = bodyData.b.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-            const paras = body.split('\n\n');
-            bodyEl.innerHTML = paras.map(p => '<p>' + escHtml(p) + '</p>').join('');
+            bodyEl.innerHTML = renderMarkdown(body);
         } else {
             bodyEl.innerHTML = '<div class="no-body">正文内容为空</div>';
         }
@@ -788,6 +787,52 @@ function updateReadingProgress() {
 }
 
 /* ===== Markdown 渲染 ===== */
+/* 允许的 HTML 标签白名单 */
+const SAFE_TAGS = /^(\/?)(div|span|p|br|strong|em|b|i|img|a|blockquote|ul|ol|li|table|tr|td|th|tbody|thead|hr|sub|sup|center|h[1-6]|figure|figcaption|font|u|s|del|ins|mark|small|big)\b/i;
+/* 允许的属性白名单 */
+const SAFE_ATTRS = /^(style|class|src|alt|href|title|align|width|height|colspan|rowspan|target|rel|color|size|face|id)$/i;
+
+function sanitizeHtmlTag(tag) {
+    // 提取标签名
+    const m = tag.match(/^<\/?([a-zA-Z0-9]+)/);
+    if (!m) return escHtml(tag);
+    if (!SAFE_TAGS.test(tag)) return escHtml(tag);
+    // 检查属性，只保留安全属性
+    if (tag.startsWith('</')) return tag.toLowerCase();
+    // 开标签：过滤属性
+    const tagName = m[1].toLowerCase();
+    let attrs = '';
+    const attrRegex = /\s([a-zA-Z-]+)\s*=\s*"([^"]*)"/g;
+    let am;
+    while ((am = attrRegex.exec(tag)) !== null) {
+        if (SAFE_ATTRS.test(am[1])) {
+            attrs += ` ${am[1].toLowerCase()}="${am[2]}"`;
+        }
+    }
+    const selfClose = tag.endsWith('/>') ? ' /' : '';
+    return `<${tagName}${attrs}${selfClose}>`;
+}
+
+function processInlineMarkdown(text) {
+    // 按HTML标签分割，保留标签
+    const parts = text.split(/(<[^>]+>)/g);
+    let result = '';
+    for (const part of parts) {
+        if (part.startsWith('<') && part.endsWith('>')) {
+            result += sanitizeHtmlTag(part);
+        } else {
+            // 普通文本：先转义，再处理 markdown 格式
+            let escaped = escHtml(part);
+            // 先处理 **粗体**
+            escaped = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            // 再处理 *斜体*
+            escaped = escaped.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            result += escaped;
+        }
+    }
+    return result;
+}
+
 function renderMarkdown(md) {
     if (!md) return '';
     // 统一换行符：CRLF/CR -> LF
@@ -798,14 +843,13 @@ function renderMarkdown(md) {
         p = p.trim();
         if (!p) return;
         if (p.startsWith('### ')) {
-            html += '<p class="md-heading">' + escHtml(p.substring(4)) + '</p>';
+            html += '<p class="md-heading">' + processInlineMarkdown(p.substring(4)) + '</p>';
         } else if (p.startsWith('## ')) {
-            html += '<p class="md-heading" style="font-size:17px;">' + escHtml(p.substring(3)) + '</p>';
+            html += '<p class="md-heading" style="font-size:17px;">' + processInlineMarkdown(p.substring(3)) + '</p>';
         } else if (p.startsWith('# ')) {
-            html += '<p class="md-heading" style="font-size:18px;">' + escHtml(p.substring(2)) + '</p>';
+            html += '<p class="md-heading" style="font-size:18px;">' + processInlineMarkdown(p.substring(2)) + '</p>';
         } else {
-            let processed = escHtml(p);
-            processed = processed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            let processed = processInlineMarkdown(p);
             if (processed.startsWith('<strong>') && processed.endsWith('</strong>') &&
                 processed.indexOf('<strong>') === processed.lastIndexOf('<strong>')) {
                 html += '<p class="md-bold">' + processed + '</p>';

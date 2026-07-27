@@ -188,19 +188,44 @@ async function loadYearData(year, retry = 2) {
     if (ms.loadedYears.has(year) || ms.loadingYears.has(year)) return ms.loadedYears.has(year);
     ms.loadingYears.add(year);
     try {
-        const resp = await fetch(`${conf.yearsPath}/${year}.json`);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        ms.yearData[year] = await resp.json();
-        ms.loadedYears.add(year);
-        return true;
-    } catch (e) {
-        console.error(`加载 ${year} 年数据失败:`, e);
-        if (retry > 0) {
-            await new Promise(r => setTimeout(r, 800));
-            ms.loadingYears.delete(year);
-            return loadYearData(year, retry - 1);
+        // 先尝试按期加载（分片后的数据）
+        const manifestResp = await fetch(`${conf.yearsPath}/${year}/_manifest.json`);
+        if (manifestResp.ok) {
+            const manifest = await manifestResp.json();
+            ms.yearData[year] = {};
+            for (const issue of manifest.issues) {
+                try {
+                    const issueResp = await fetch(`${conf.yearsPath}/${year}/${issue}.json`);
+                    if (issueResp.ok) {
+                        const issueData = await issueResp.json();
+                        Object.assign(ms.yearData[year], issueData);
+                    }
+                } catch (e) {
+                    console.error(`加载 ${year} 年第 ${issue} 期数据失败:`, e);
+                }
+            }
+            ms.loadedYears.add(year);
+            return true;
         }
-        return false;
+        // 回退到整年文件（党建研究等未分片数据）
+        throw new Error('manifest not found');
+    } catch (e) {
+        // 尝试旧版整年文件
+        try {
+            const resp = await fetch(`${conf.yearsPath}/${year}.json`);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            ms.yearData[year] = await resp.json();
+            ms.loadedYears.add(year);
+            return true;
+        } catch (e2) {
+            console.error(`加载 ${year} 年数据失败:`, e2);
+            if (retry > 0) {
+                await new Promise(r => setTimeout(r, 800));
+                ms.loadingYears.delete(year);
+                return loadYearData(year, retry - 1);
+            }
+            return false;
+        }
     } finally {
         ms.loadingYears.delete(year);
     }

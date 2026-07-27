@@ -172,6 +172,9 @@ body.about-active { padding-bottom: 0; }
     position: relative;
     flex-shrink: 0;
     overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 .mag-cover::before {
     content: "";
@@ -180,6 +183,7 @@ body.about-active { padding-bottom: 0; }
     left: 0;
     width: 3px;
     background: rgba(255,255,255,0.15);
+    z-index: 2;
 }
 .mag-cover::after {
     content: "";
@@ -188,21 +192,26 @@ body.about-active { padding-bottom: 0; }
     right: 4px;
     width: 1px;
     background: rgba(0,0,0,0.1);
+    z-index: 2;
 }
 .mag-cover-qs {
-    background: #8b0000;
+    background-image: url('../img/cover_qs.jpg');
+    background-color: #8b0000;
 }
 .mag-cover-hqwg {
-    background: #8b0000;
+    background-image: url('../img/cover_hqwg.jpg');
+    background-color: #8b0000;
 }
 .mag-cover-djyj {
-    background: #8b0000;
+    background-image: url('../img/cover_djyj.jpg');
+    background-color: #8b0000;
 }
 .mag-cover-inner {
     text-align: center;
     color: white;
     padding: 12px 8px;
     z-index: 1;
+    display: none; /* Hidden when using cover image */
 }
 .mag-cover-title {
     font-size: 22px;
@@ -946,6 +955,14 @@ body.article-active .reading-progress { display: block; }
     font-weight: 700;
     color: var(--mag-color-dark, var(--primary-dark));
     margin-top: 16px;
+}
+.article-page-body p.md-subheading {
+    text-indent: 0;
+    text-align: left;
+    font-weight: 700;
+    color: var(--text);
+    font-size: 16px;
+    margin-top: 20px;
 }
 .article-page-body strong { font-weight: 700; }
 .article-page-body .no-body {

@@ -787,8 +787,8 @@ function updateReadingProgress() {
 }
 
 /* ===== Markdown 渲染 ===== */
-/* 允许的 HTML 标签白名单 */
-const SAFE_TAGS = /^(\/?)(div|span|p|br|strong|em|b|i|img|a|blockquote|ul|ol|li|table|tr|td|th|tbody|thead|hr|sub|sup|center|h[1-6]|figure|figcaption|font|u|s|del|ins|mark|small|big)\b/i;
+/* 允许的 HTML 标签白名单（匹配标签名，不含 < >） */
+const SAFE_TAG_NAMES = /^(div|span|p|br|strong|em|b|i|img|a|blockquote|ul|ol|li|table|tr|td|th|tbody|thead|hr|sub|sup|center|h[1-6]|figure|figcaption|font|u|s|del|ins|mark|small|big)$/i;
 /* 允许的属性白名单 */
 const SAFE_ATTRS = /^(style|class|src|alt|href|title|align|width|height|colspan|rowspan|target|rel|color|size|face|id)$/i;
 
@@ -796,11 +796,11 @@ function sanitizeHtmlTag(tag) {
     // 提取标签名
     const m = tag.match(/^<\/?([a-zA-Z0-9]+)/);
     if (!m) return escHtml(tag);
-    if (!SAFE_TAGS.test(tag)) return escHtml(tag);
-    // 检查属性，只保留安全属性
-    if (tag.startsWith('</')) return tag.toLowerCase();
-    // 开标签：过滤属性
     const tagName = m[1].toLowerCase();
+    if (!SAFE_TAG_NAMES.test(tagName)) return escHtml(tag);
+    // 闭标签直接返回
+    if (tag.startsWith('</')) return `</${tagName}>`;
+    // 开标签：过滤属性
     let attrs = '';
     const attrRegex = /\s([a-zA-Z-]+)\s*=\s*"([^"]*)"/g;
     let am;
@@ -833,6 +833,15 @@ function processInlineMarkdown(text) {
     return result;
 }
 
+/* 检测中文数字标题（一、二、三、...十、十一、... + 、） */
+function isChineseHeading(text) {
+    // 匹配：一、二、三、...十、十一、十二、... + 、 + 后续内容
+    // 或：第一章/第一节/第一部分 等
+    // 或：（一）（二）（三） 开头
+    return /^[一二三四五六七八九十]{1,3}、/.test(text) ||
+           /^第[一二三四五六七八九十百]{1,4}[章节部分条]/.test(text);
+}
+
 function renderMarkdown(md) {
     if (!md) return '';
     // 统一换行符：CRLF/CR -> LF
@@ -853,6 +862,9 @@ function renderMarkdown(md) {
             if (processed.startsWith('<strong>') && processed.endsWith('</strong>') &&
                 processed.indexOf('<strong>') === processed.lastIndexOf('<strong>')) {
                 html += '<p class="md-bold">' + processed + '</p>';
+            } else if (isChineseHeading(p)) {
+                // 中文数字标题（一、二、三、等）显示为小标题
+                html += '<p class="md-subheading">' + processed + '</p>';
             } else {
                 html += '<p>' + processed + '</p>';
             }

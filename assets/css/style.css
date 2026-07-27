@@ -168,7 +168,7 @@ body.about-active { padding-bottom: 0; }
     aspect-ratio: 3 / 4;
     flex-shrink: 0;
     overflow: hidden;
-    background-size: contain;
+    background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
 }

@@ -621,7 +621,9 @@ async function showArticle(encUrl) {
         try {
             const resp = await fetch(mdPath);
             if (resp.ok) {
-                const md = await resp.text();
+                let md = await resp.text();
+                // 统一换行符：CRLF -> LF，避免 Windows 行尾导致分隔符检测失败
+                md = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
                 // 去掉 markdown 头部的元信息（# 标题到 --- 分隔线之间的内容）
                 let bodyMd = md;
                 const sepIdx = md.indexOf('\n---\n');
@@ -671,7 +673,8 @@ function renderArticleBody(url, year, bodyEl) {
         if (bodyData.bm) {
             bodyEl.innerHTML = renderMarkdown(bodyData.bm);
         } else if (bodyData.b) {
-            const paras = bodyData.b.split('\n\n');
+            const body = bodyData.b.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            const paras = body.split('\n\n');
             bodyEl.innerHTML = paras.map(p => '<p>' + escHtml(p) + '</p>').join('');
         } else {
             bodyEl.innerHTML = '<div class="no-body">正文内容为空</div>';
@@ -702,7 +705,8 @@ async function retryShowArticle(encUrl) {
         try {
             const resp = await fetch(mdPath + '?t=' + Date.now());
             if (resp.ok) {
-                const md = await resp.text();
+                let md = await resp.text();
+                md = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
                 let bodyMd = md;
                 const sepIdx = md.indexOf('\n---\n');
                 if (sepIdx >= 0) bodyMd = md.substring(sepIdx + 5).trim();
@@ -786,6 +790,8 @@ function updateReadingProgress() {
 /* ===== Markdown 渲染 ===== */
 function renderMarkdown(md) {
     if (!md) return '';
+    // 统一换行符：CRLF/CR -> LF
+    md = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const paras = md.split('\n\n');
     let html = '';
     paras.forEach(p => {

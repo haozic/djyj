@@ -164,35 +164,13 @@ body.about-active { padding-bottom: 0; }
 
 /* Magazine Covers */
 .mag-cover {
-    width: 100px;
-    min-height: 140px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+    width: 110px;
+    aspect-ratio: 3 / 4;
     flex-shrink: 0;
     overflow: hidden;
-    background-size: cover;
+    background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-}
-.mag-cover::before {
-    content: "";
-    position: absolute;
-    top: 0; bottom: 0;
-    left: 0;
-    width: 3px;
-    background: rgba(255,255,255,0.15);
-    z-index: 2;
-}
-.mag-cover::after {
-    content: "";
-    position: absolute;
-    top: 8px; bottom: 8px;
-    right: 4px;
-    width: 1px;
-    background: rgba(0,0,0,0.1);
-    z-index: 2;
 }
 .mag-cover-qs {
     background-image: url('../img/cover_qs.jpg');
@@ -207,11 +185,7 @@ body.about-active { padding-bottom: 0; }
     background-color: #8b0000;
 }
 .mag-cover-inner {
-    text-align: center;
-    color: white;
-    padding: 12px 8px;
-    z-index: 1;
-    display: none; /* Hidden when using cover image */
+    display: none;
 }
 .mag-cover-title {
     font-size: 22px;
@@ -1245,7 +1219,7 @@ body.article-active .reading-progress { display: block; }
     }
     .mag-cover {
         width: 100%;
-        min-height: 200px;
+        aspect-ratio: 3 / 4;
     }
     .mag-cover-title { font-size: 28px; }
     .mag-cover-sub { font-size: 9px; }
@@ -1322,6 +1296,5 @@ body.article-active .reading-progress { display: block; }
 /* ===== Wide (>=1024px) ===== */
 @media (min-width: 1024px) {
     .app-header h1 { font-size: 28px; letter-spacing: 2px; }
-    .mag-cover { min-height: 220px; }
     .mag-cover-title { font-size: 30px; }
 }

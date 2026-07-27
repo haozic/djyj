@@ -5,7 +5,7 @@ const MAGAZINES = {
     qs: {
         name: '求是',
         fullName: '《求是》',
-        color: '#c8102e',
+        color: '#8b0000',
         colorDark: '#8b0000',
         dataPath: 'data/qs',
         yearsPath: 'data/qs/years',
@@ -16,8 +16,8 @@ const MAGAZINES = {
     hqwg: {
         name: '红旗文稿',
         fullName: '《红旗文稿》',
-        color: '#b91c1c',
-        colorDark: '#7f1d1d',
+        color: '#8b0000',
+        colorDark: '#8b0000',
         dataPath: 'data/hqwg',
         yearsPath: 'data/hqwg/years',
         source: 'https://www.qstheory.cn/hqwglist/mulu.htm',
@@ -27,8 +27,8 @@ const MAGAZINES = {
     djyj: {
         name: '党建研究',
         fullName: '《党建研究》',
-        color: '#7f1d1d',
-        colorDark: '#450a0a',
+        color: '#8b0000',
+        colorDark: '#8b0000',
         dataPath: 'data',
         yearsPath: 'data/years',
         source: 'https://djyj.12371.cn/',
@@ -153,8 +153,8 @@ function goHome() {
     state.currentMag = null;
 
     // 重置杂志颜色
-    document.documentElement.style.setProperty('--mag-color', '#c8102e');
-    document.documentElement.style.setProperty('--mag-color-dark', '#7f1d1d');
+    document.documentElement.style.setProperty('--mag-color', '#8b0000');
+    document.documentElement.style.setProperty('--mag-color-dark', '#8b0000');
 
     document.getElementById('app').style.display = 'none';
     document.getElementById('homePage').style.display = 'block';
@@ -1202,8 +1202,8 @@ async function init() {
         } else if (state.currentMag && !e.state?.mag) {
             // 从杂志页返回首页
             state.currentMag = null;
-            document.documentElement.style.setProperty('--mag-color', '#c8102e');
-            document.documentElement.style.setProperty('--mag-color-dark', '#7f1d1d');
+            document.documentElement.style.setProperty('--mag-color', '#8b0000');
+            document.documentElement.style.setProperty('--mag-color-dark', '#8b0000');
             document.getElementById('app').style.display = 'none';
             document.getElementById('homePage').style.display = 'block';
             window.scrollTo(0, 0);

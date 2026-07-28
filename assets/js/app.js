@@ -648,7 +648,7 @@ async function showArticle(encUrl) {
 
     const magKey = state.currentMag;
     if (!history.state || history.state.articleUrl !== url) {
-        history.pushState({ articleUrl: url, mag: magKey }, '', `#m=${magKey}&a=${encUrl}`);
+        history.pushState({ articleUrl: url, mag: magKey }, '', `#m=${magKey}&a=${idx}`);
     }
 
     if (!a.h) {
@@ -1248,7 +1248,8 @@ function parseHash() {
     
     const params = new URLSearchParams(hash.substring(1));
     const mag = params.get('m');
-    const article = params.get('a');
+    const articleRaw = params.get('a');
+    const article = articleRaw != null ? parseInt(articleRaw, 10) : null;
     const section = params.get('s');
     const about = params.has('about');
     
@@ -1321,8 +1322,14 @@ async function init() {
         enterMagazine(route.mag);
         if (route.about) {
             setTimeout(() => showAboutPage(), 500);
-        } else if (route.article) {
-            setTimeout(() => showArticle(route.article), 500);
+        } else if (route.article != null) {
+            // route.article 是数字索引，需要转换为 URL 后调用 showArticle
+            setTimeout(() => {
+                const ms = state.magCache[route.mag];
+                if (ms && ms.meta[route.article]) {
+                    showArticle(encodeURIComponent(ms.meta[route.article].u));
+                }
+            }, 600);
         } else if (route.section) {
             setTimeout(() => showSectionPage(route.section), 500);
         }

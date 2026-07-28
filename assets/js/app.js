@@ -52,6 +52,8 @@ const state = {
     searchResults: [],
     currentPage: 1,
     pageSize: 20,
+    readingFs: 20,          // 文章字号
+    readingTheme: 'auto',   // light / dark / auto
 };
 
 const CN = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四'];
@@ -137,8 +139,8 @@ function enterMagazine(magKey) {
 
     // 更新标题
     document.getElementById('magTitle').textContent = conf.fullName;
-    document.documentElement.style.setProperty('--mag-color', conf.color);
-    document.documentElement.style.setProperty('--mag-color-dark', conf.colorDark);
+    document.documentElement.style.setProperty('--mag-color-base', conf.color);
+    document.documentElement.style.setProperty('--mag-color-dark-base', conf.colorDark);
 
     // 清空搜索
     document.getElementById('searchInput').value = '';
@@ -166,8 +168,8 @@ function goHome() {
     state.currentMag = null;
 
     // 重置杂志颜色
-    document.documentElement.style.setProperty('--mag-color', '#8b0000');
-    document.documentElement.style.setProperty('--mag-color-dark', '#8b0000');
+    document.documentElement.style.setProperty('--mag-color-base', '#8b0000');
+    document.documentElement.style.setProperty('--mag-color-dark-base', '#8b0000');
 
     document.getElementById('app').style.display = 'none';
     document.getElementById('homePage').style.display = 'block';
@@ -800,6 +802,82 @@ function closeArticlePage() {
     document.body.classList.remove('article-active');
     state.currentArticleUrl = null;
     document.getElementById('readingProgress').style.width = '0%';
+    // 关闭设置面板
+    document.getElementById('articleSettingsPanel')?.classList.remove('show');
+    document.getElementById('articleSettingsBtn')?.classList.remove('active');
+}
+
+/* ===== 阅读设置 ===== */
+const READING_FS_KEY = 'reading_fontsize';
+const READING_THEME_KEY = 'reading_theme';
+
+function loadReadingSettings() {
+    // 字号
+    const fs = localStorage.getItem(READING_FS_KEY);
+    if (fs) {
+        applyFontSize(parseInt(fs, 10));
+    }
+    // 主题
+    const theme = localStorage.getItem(READING_THEME_KEY) || 'auto';
+    applyTheme(theme);
+}
+
+function saveReadingSettings() {
+    if (state.readingFs) localStorage.setItem(READING_FS_KEY, String(state.readingFs));
+    if (state.readingTheme) localStorage.setItem(READING_THEME_KEY, state.readingTheme);
+}
+
+function applyFontSize(size) {
+    state.readingFs = size;
+    document.documentElement.style.setProperty('--article-fs', size + 'px');
+    // 更新按钮高亮
+    document.querySelectorAll('#fontSizeGroup .asp-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.fs, 10) === size);
+    });
+}
+
+function applyTheme(theme) {
+    state.readingTheme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    // 更新按钮高亮
+    document.querySelectorAll('#themeGroup .asp-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === theme);
+    });
+}
+
+function toggleArticleSettings(e) {
+    e?.stopPropagation();
+    const panel = document.getElementById('articleSettingsPanel');
+    const btn = document.getElementById('articleSettingsBtn');
+    const isOpen = panel.classList.toggle('show');
+    btn.classList.toggle('active', isOpen);
+}
+
+function initReadingSettingsListeners() {
+    // 字号按钮
+    document.querySelectorAll('#fontSizeGroup .asp-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            applyFontSize(parseInt(btn.dataset.fs, 10));
+            saveReadingSettings();
+        });
+    });
+    // 主题按钮
+    document.querySelectorAll('#themeGroup .asp-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            applyTheme(btn.dataset.theme);
+            saveReadingSettings();
+        });
+    });
+    // 点击外部关闭面板
+    document.addEventListener('click', (e) => {
+        const panel = document.getElementById('articleSettingsPanel');
+        if (!panel.classList.contains('show')) return;
+        if (!panel.contains(e.target) && e.target.id !== 'articleSettingsBtn') {
+            panel.classList.remove('show');
+            document.getElementById('articleSettingsBtn').classList.remove('active');
+        }
+    });
+    // 系统主题变化时，若为 auto 模式则无需额外操作（CSS 自动处理）
 }
 
 /* ===== 关于页面 ===== */
@@ -1261,6 +1339,8 @@ function parseHash() {
 async function init() {
     loadFavorites();
     updateFavBadges();
+    loadReadingSettings();
+    initReadingSettingsListeners();
 
     // 导航按钮
     document.querySelectorAll('.nav-tab, .bn-item').forEach(btn => {
@@ -1283,6 +1363,13 @@ async function init() {
     // 键盘
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
+            // 先关闭设置面板
+            const settingsPanel = document.getElementById('articleSettingsPanel');
+            if (settingsPanel?.classList.contains('show')) {
+                settingsPanel.classList.remove('show');
+                document.getElementById('articleSettingsBtn')?.classList.remove('active');
+                return;
+            }
             if (document.body.classList.contains('article-active') ||
                 document.body.classList.contains('section-active') ||
                 document.body.classList.contains('about-active')) {
@@ -1302,8 +1389,8 @@ async function init() {
         } else if (state.currentMag && !e.state?.mag) {
             // 从杂志页返回首页
             state.currentMag = null;
-            document.documentElement.style.setProperty('--mag-color', '#8b0000');
-            document.documentElement.style.setProperty('--mag-color-dark', '#8b0000');
+            document.documentElement.style.setProperty('--mag-color-base', '#8b0000');
+            document.documentElement.style.setProperty('--mag-color-dark-base', '#8b0000');
             document.getElementById('app').style.display = 'none';
             document.getElementById('homePage').style.display = 'block';
             window.scrollTo(0, 0);

@@ -105,6 +105,9 @@ input { font-family: inherit; }
 #articlePage { display: none; }
 #aboutPage { display: none; }
 
+body.mag-active #homePage { display: none; }
+body.mag-active #app { display: block; }
+
 body.section-active #homePage,
 body.section-active #app { display: none; }
 body.section-active #sectionPage { display: block; }

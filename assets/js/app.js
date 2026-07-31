@@ -134,8 +134,7 @@ function enterMagazine(magKey) {
     state.currentPage = 1;
 
     // 显示应用页
-    document.getElementById('homePage').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
+    document.body.classList.add('mag-active');
 
     // 更新标题
     document.getElementById('magTitle').textContent = conf.fullName;
@@ -164,15 +163,12 @@ function enterMagazine(magKey) {
 
 function goHome() {
     // 关闭所有覆盖层
-    document.body.classList.remove('article-active', 'section-active', 'about-active');
+    document.body.classList.remove('article-active', 'section-active', 'about-active', 'mag-active');
     state.currentMag = null;
 
     // 重置杂志颜色
     document.documentElement.style.setProperty('--mag-color-base', '#8b0000');
     document.documentElement.style.setProperty('--mag-color-dark-base', '#8b0000');
-
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('homePage').style.display = 'block';
 
     history.pushState({ home: true }, '', '#');
     window.scrollTo(0, 0);
@@ -1401,8 +1397,7 @@ async function init() {
             state.currentMag = null;
             document.documentElement.style.setProperty('--mag-color-base', '#8b0000');
             document.documentElement.style.setProperty('--mag-color-dark-base', '#8b0000');
-            document.getElementById('app').style.display = 'none';
-            document.getElementById('homePage').style.display = 'block';
+            document.body.classList.remove('mag-active');
             window.scrollTo(0, 0);
         }
     });

@@ -868,16 +868,18 @@ function initReadingSettingsListeners() {
             saveReadingSettings();
         });
     });
-    // 点击外部关闭面板
+    // 点击外部关闭面板（排除滚动触发的 touchstart）
     document.addEventListener('click', (e) => {
         const panel = document.getElementById('articleSettingsPanel');
-        if (!panel.classList.contains('show')) return;
-        if (!panel.contains(e.target) && e.target.id !== 'articleSettingsBtn') {
-            panel.classList.remove('show');
-            document.getElementById('articleSettingsBtn').classList.remove('active');
-        }
+        if (!panel || !panel.classList.contains('show')) return;
+        // 点击面板内或 Aa 按钮时不关闭
+        if (panel.contains(e.target) || e.target.id === 'articleSettingsBtn') return;
+        // 点击其他按钮（如收藏、原文链接）时不关闭
+        if (e.target.closest('.ap-fav-btn, .ap-original-link')) return;
+        panel.classList.remove('show');
+        document.getElementById('articleSettingsBtn')?.classList.remove('active');
     });
-    // 系统主题变化时，若为 auto 模式则无需额外操作（CSS 自动处理）
+    // 滚动时不关闭面板（面板已为 fixed，会始终保持在屏幕上）
 }
 
 /* ===== 关于页面 ===== */

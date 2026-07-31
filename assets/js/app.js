@@ -212,6 +212,27 @@ async function initMagazine(magKey) {
     // 默认显示板块
     renderSections();
     loadAllYearsBackground();
+    updateStickyOffsets();
+
+    // 字体加载后重新测量（字体加载会改变 header 实际高度）
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => updateStickyOffsets());
+    }
+    // 延迟再测一次，确保布局稳定
+    requestAnimationFrame(() => requestAnimationFrame(updateStickyOffsets));
+}
+
+/* ===== 动态测量 sticky 偏移量 ===== */
+function updateStickyOffsets() {
+    const header = document.querySelector('.app-header');
+    const searchBar = document.getElementById('searchBar');
+    if (!header) return;
+    const headerH = header.offsetHeight;
+    document.documentElement.style.setProperty('--header-h', headerH + 'px');
+    if (searchBar) {
+        const searchH = searchBar.offsetHeight;
+        document.documentElement.style.setProperty('--search-h', searchH + 'px');
+    }
 }
 
 /* ===== 数据加载 ===== */
@@ -1297,6 +1318,7 @@ function switchMode(mode) {
     else if (mode === 'catalog') renderCatalog();
     else if (mode === 'favorites') renderFavorites();
     window.scrollTo(0, 0);
+    requestAnimationFrame(updateStickyOffsets);
 }
 
 /* ===== 工具函数 ===== */
@@ -1404,6 +1426,12 @@ async function init() {
 
     // 阅读进度
     window.addEventListener('scroll', updateReadingProgress, { passive: true });
+
+    // 窗口尺寸变化时更新 sticky 偏移量
+    window.addEventListener('resize', () => {
+        clearTimeout(window._resizeTimer);
+        window._resizeTimer = setTimeout(updateStickyOffsets, 150);
+    });
 
     // 加载首页计数
     loadHomeCounts();

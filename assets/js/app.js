@@ -802,6 +802,7 @@ function closeArticlePage() {
     document.body.classList.remove('article-active');
     state.currentArticleUrl = null;
     document.getElementById('readingProgress').style.width = '0%';
+    document.getElementById('backToTopBtn')?.classList.remove('show');
     // 关闭设置面板
     document.getElementById('articleSettingsPanel')?.classList.remove('show');
     document.getElementById('articleSettingsBtn')?.classList.remove('active');
@@ -907,6 +908,13 @@ function updateReadingProgress() {
     const docHeight = document.documentElement.scrollHeight - window.innerHeight;
     const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
     document.getElementById('readingProgress').style.width = pct + '%';
+    // 返回顶部按钮：滚动超过 300px 时显示
+    const btn = document.getElementById('backToTopBtn');
+    if (btn) btn.classList.toggle('show', scrollTop > 300);
+}
+
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /* ===== Markdown 渲染 ===== */

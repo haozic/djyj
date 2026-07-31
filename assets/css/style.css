@@ -907,11 +907,9 @@ body.article-active .reading-progress { display: block; }
 
 /* ===== Article Page ===== */
 .article-page {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    overflow-y: auto;
     background: var(--bg);
     z-index: 200;
+    min-height: 100vh;
 }
 .article-page-header {
     background: var(--card);
@@ -1148,11 +1146,9 @@ body.article-active .reading-progress { display: block; }
 
 /* ===== Section Page ===== */
 .section-page {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    overflow-y: auto;
     background: var(--bg);
     z-index: 150;
+    min-height: 100vh;
 }
 .section-page-header {
     background: var(--card);

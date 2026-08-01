@@ -11,7 +11,6 @@ const MAGAZINES = {
         yearsPath: 'data/qs/years',
         source: 'https://www.qstheory.cn/qs/mulu.htm',
         desc: '中共中央委员会机关刊',
-        useSplitData: true,
     },
     hqwg: {
         name: '红旗文稿',
@@ -22,7 +21,6 @@ const MAGAZINES = {
         yearsPath: 'data/hqwg/years',
         source: 'https://www.qstheory.cn/hqwglist/mulu.htm',
         desc: '政治理论半月刊',
-        useSplitData: true,
     },
     djyj: {
         name: '党建研究',
@@ -33,7 +31,6 @@ const MAGAZINES = {
         yearsPath: 'data/years',
         source: 'https://djyj.12371.cn/',
         desc: '党建理论与实践研究月刊',
-        useSplitData: false,
     },
 };
 
@@ -244,56 +241,19 @@ async function loadYearData(year, retry = 2) {
     if (ms.loadedYears.has(year) || ms.loadingYears.has(year)) return ms.loadedYears.has(year);
     ms.loadingYears.add(year);
     try {
-        if (conf.useSplitData) {
-            // 分片数据：先加载 manifest，再并行加载所有期
-            const manifestResp = await fetch(`${conf.yearsPath}/${year}/_manifest.json`);
-            if (manifestResp.ok) {
-                const manifest = await manifestResp.json();
-                ms.yearData[year] = {};
-                // 并行加载所有期数据
-                const issuePromises = manifest.issues.map(async (issue) => {
-                    try {
-                        const issueResp = await fetch(`${conf.yearsPath}/${year}/${issue}.json`);
-                        if (issueResp.ok) {
-                            return await issueResp.json();
-                        }
-                    } catch (e) {
-                        console.error(`加载 ${year} 年第 ${issue} 期数据失败:`, e);
-                    }
-                    return null;
-                });
-                const issueResults = await Promise.all(issuePromises);
-                for (const issueData of issueResults) {
-                    if (issueData) Object.assign(ms.yearData[year], issueData);
-                }
-                ms.loadedYears.add(year);
-                return true;
-            }
-            throw new Error('manifest not found');
-        }
-        // 非分片数据：直接加载整年文件
         const resp = await fetch(`${conf.yearsPath}/${year}.json`);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         ms.yearData[year] = await resp.json();
         ms.loadedYears.add(year);
         return true;
     } catch (e) {
-        // 回退到旧版整年文件
-        try {
-            const resp = await fetch(`${conf.yearsPath}/${year}.json`);
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            ms.yearData[year] = await resp.json();
-            ms.loadedYears.add(year);
-            return true;
-        } catch (e2) {
-            console.error(`加载 ${year} 年数据失败:`, e2);
-            if (retry > 0) {
-                await new Promise(r => setTimeout(r, 800));
-                ms.loadingYears.delete(year);
-                return loadYearData(year, retry - 1);
-            }
-            return false;
+        console.error(`加载 ${year} 年数据失败:`, e);
+        if (retry > 0) {
+            await new Promise(r => setTimeout(r, 800));
+            ms.loadingYears.delete(year);
+            return loadYearData(year, retry - 1);
         }
+        return false;
     } finally {
         ms.loadingYears.delete(year);
     }
@@ -402,8 +362,8 @@ function performSearch() {
             if (metaData.includes(query)) return true;
             if (a.h) {
                 const yd = ms.yearData[String(a.y)];
-                if (yd && yd[a.u] && yd[a.u].b) {
-                    if (yd[a.u].b.toLowerCase().includes(query)) return true;
+                if (yd && yd[a.u]) {
+                    if (yd[a.u].toLowerCase().includes(query)) return true;
                 }
             }
             return false;
@@ -423,8 +383,8 @@ function performSearch() {
             if (bo && !a.h) return false;
             if (!a.h) return false;
             const yd = ms.yearData[String(a.y)];
-            if (yd && yd[a.u] && yd[a.u].b) {
-                return yd[a.u].b.toLowerCase().includes(query);
+            if (yd && yd[a.u]) {
+                return yd[a.u].toLowerCase().includes(query);
             }
             return false;
         });
@@ -478,8 +438,8 @@ async function performBodySearch(query, initialResults, scope, bo) {
         }
         if (!matched && a.h) {
             const yd = ms.yearData[String(a.y)];
-            if (yd && yd[a.u] && yd[a.u].b) {
-                if (yd[a.u].b.toLowerCase().includes(query)) matched = true;
+            if (yd && yd[a.u]) {
+                if (yd[a.u].toLowerCase().includes(query)) matched = true;
             }
         }
         return matched;
@@ -496,7 +456,7 @@ function finishSearch(results, query, scope, input) {
     const scopeLabel = scope === 'all' ? '标题+正文' : (scope === 'title' ? '仅标题' : '仅正文');
     let infoText = `共 ${results.length} 篇文章`;
     if (qDisplay) infoText += `（关键词："${qDisplay}" ｜ 范围：${scopeLabel}）`;
-    if (scope !== 'title' && !ms.fullTextReady) infoText += ' · 全文搜索加载中，当前仅搜索标题/作者';
+    if (scope !== 'title' && !state.fullTextReady) infoText += ' · 全文搜索加载中，当前仅搜索标题/作者';
     document.getElementById('resultInfo').textContent = infoText;
 
     renderSearchPage();
@@ -534,7 +494,7 @@ function renderSearchPage() {
             titleHtml = highlightText(a.t, query);
             if (a.h && (scope === 'body' || scope === 'all')) {
                 const yd = ms.yearData[String(a.y)];
-                const body = (yd && yd[a.u]) ? yd[a.u].b : '';
+                const body = (yd && yd[a.u]) ? yd[a.u] : '';
                 if (body) {
                     const lb = body.toLowerCase();
                     const pos = lb.indexOf(query);
@@ -748,13 +708,8 @@ function renderArticleBody(url, year, bodyEl) {
     if (!ms) return;
     const yd = ms.yearData[String(year)];
     if (yd && yd[url]) {
-        const bodyData = yd[url];
-        if (bodyData.b) {
-            const body = bodyData.b.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-            bodyEl.innerHTML = renderMarkdown(body);
-        } else {
-            bodyEl.innerHTML = '<div class="no-body">正文内容为空</div>';
-        }
+        const body = yd[url].replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        bodyEl.innerHTML = renderMarkdown(body);
         const a = ms.meta.find(x => x.u === url);
         if (a) {
             const wordCount = countWords(bodyEl.textContent);

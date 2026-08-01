@@ -941,6 +941,14 @@ function processInlineMarkdown(text) {
         } else {
             // 普通文本：先转义，再处理 markdown 格式
             let escaped = escHtml(part);
+            // 处理图片 ![alt](url) —— 必须在链接之前处理
+            escaped = escaped.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, alt, url) => {
+                return `<img src="${url}" alt="${alt}">`;
+            });
+            // 处理链接 [text](url)
+            escaped = escaped.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, url) => {
+                return `<a href="${url}" target="_blank" rel="noopener">${txt}</a>`;
+            });
             // 先处理 **粗体**
             escaped = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
             // 再处理 *斜体*
@@ -964,18 +972,25 @@ function renderMarkdown(md) {
     if (!md) return '';
     // 统一换行符：CRLF/CR -> LF
     md = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    // 合并 3+ 连续换行为 2 个（段落分隔）
+    md = md.replace(/\n{3,}/g, '\n\n');
     const paras = md.split('\n\n');
     let html = '';
     paras.forEach(p => {
         p = p.trim();
         if (!p) return;
+        // Markdown 图片段落（可能被 ** 包裹）—— 作为块级元素，不包裹 <p>
+        if (p.startsWith('![') || p.startsWith('**![')) {
+            html += processInlineMarkdown(p);
+            return;
+        }
         if (p.startsWith('### ')) {
             html += '<p class="md-heading">' + processInlineMarkdown(p.substring(4)) + '</p>';
         } else if (p.startsWith('## ')) {
             html += '<p class="md-heading" style="font-size:17px;">' + processInlineMarkdown(p.substring(3)) + '</p>';
         } else if (p.startsWith('# ')) {
             html += '<p class="md-heading" style="font-size:18px;">' + processInlineMarkdown(p.substring(2)) + '</p>';
-        } else if (p.startsWith('<div') || p.startsWith('<img') || p.startsWith('<table') || p.startsWith('<figure')) {
+        } else if (p.startsWith('<div') || p.startsWith('<img') || p.startsWith('<table') || p.startsWith('<figure') || p.startsWith('<a ')) {
             // 块级 HTML 元素直接输出，不包裹 <p>
             html += processInlineMarkdown(p);
         } else {

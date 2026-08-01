@@ -1134,6 +1134,18 @@ body.article-active .reading-progress { display: block; }
     margin: 16px auto;
     border-radius: var(--radius-sm);
 }
+.article-page-body a {
+    color: var(--mag-color, var(--primary));
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-2);
+    transition: border-color 0.2s var(--ease);
+}
+.article-page-body a:hover {
+    border-bottom-color: var(--mag-color, var(--primary));
+}
+.article-page-body strong > img {
+    margin: 16px auto;
+}
 .article-page-body .no-body {
     text-align: center;
     color: var(--text-3);

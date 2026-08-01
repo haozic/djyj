@@ -53,7 +53,7 @@ const state = {
     readingTheme: 'auto',   // light / dark / auto
 };
 
-const CN = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四'];
+const CN = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','二十一','二十二','二十三','二十四'];
 const FAV_KEY = 'djyj_favorites';
 
 /* ===== SVG 辅助 ===== */
@@ -514,7 +514,7 @@ function renderSearchPage() {
             }
         }
 
-        const ci = a.i <= 14 ? CN[a.i - 1] : a.i;
+        const ci = a.i <= 24 ? CN[a.i - 1] : a.i;
         const isFav = isFavorite(a.u);
         const favClass = isFav ? 'active' : '';
         const favIcon = svgStar(isFav);
@@ -692,7 +692,7 @@ async function showArticle(encUrl) {
 }
 
 function updateArticleMeta(a, wordCount) {
-    const ci = a.i <= 14 ? CN[a.i - 1] : a.i;
+    const ci = a.i <= 24 ? CN[a.i - 1] : a.i;
     let meta = `${a.y}年第${ci}期 ｜ ${escHtml(a.s)}${a.a ? ' ｜ ' + escHtml(a.a) : ''}`;
     if (wordCount > 0) meta += ` ｜ 约 ${wordCount} 字`;
     document.getElementById('articleMeta').innerHTML = meta;
@@ -975,6 +975,9 @@ function renderMarkdown(md) {
             html += '<p class="md-heading" style="font-size:17px;">' + processInlineMarkdown(p.substring(3)) + '</p>';
         } else if (p.startsWith('# ')) {
             html += '<p class="md-heading" style="font-size:18px;">' + processInlineMarkdown(p.substring(2)) + '</p>';
+        } else if (p.startsWith('<div') || p.startsWith('<img') || p.startsWith('<table') || p.startsWith('<figure')) {
+            // 块级 HTML 元素直接输出，不包裹 <p>
+            html += processInlineMarkdown(p);
         } else {
             let processed = processInlineMarkdown(p);
             if (processed.startsWith('<strong>') && processed.endsWith('</strong>') &&
@@ -1056,7 +1059,7 @@ function renderSectionPageBody(articles, query) {
         html += `<div class="sp-year-group"><div class="sp-year-header">${year}年 (${ya.length}篇)</div>`;
         issues.forEach(iss => {
             const ia = ig[iss];
-            const cin = parseInt(iss) <= 14 ? CN[parseInt(iss) - 1] : iss;
+            const cin = parseInt(iss) <= 24 ? CN[parseInt(iss) - 1] : iss;
             html += `<div class="sp-issue-group"><div class="sp-issue-label">${cin}期</div>`;
             ia.forEach(a => {
                 const author = a.a ? `<span class="author">｜${escHtml(a.a)}</span>` : '';
@@ -1166,7 +1169,7 @@ function toggleYear(year) {
             const secs = catalog[year][ik];
             const secNames = Object.keys(secs);
             let issueTotal = secNames.reduce((s, sn) => s + secs[sn].length, 0);
-            const cin = parseInt(ik) <= 14 ? CN[parseInt(ik) - 1] : ik;
+            const cin = parseInt(ik) <= 24 ? CN[parseInt(ik) - 1] : ik;
             html += `<div class="issue-row collapsed" id="ir-${year}-${ik}">
                 <div class="ir-header" data-year="${year}" data-issue="${ik}">
                     <span class="ir-title">${year}年第${cin}期</span>
@@ -1239,7 +1242,7 @@ function renderFavorites() {
     </div>`;
 
     favArticles.forEach(a => {
-        const ci = a.i <= 14 ? CN[a.i - 1] : a.i;
+        const ci = a.i <= 24 ? CN[a.i - 1] : a.i;
         const encUrl = encodeURIComponent(a.u);
         html += `<div class="result-card" onclick="showArticle('${encUrl}')">
             <button class="rc-fav-btn active" onclick="event.stopPropagation(); toggleFavFromCard(this, '${encUrl}')">${svgStar(true)}</button>

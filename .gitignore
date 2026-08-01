@@ -1,15 +1,10 @@
-__pycache__/
-*.pyc
-*.pyo
+assets.zip
+*.docx
+*.pdf
+*.xls
+*.xlsx
+node_modules/
 .DS_Store
 Thumbs.db
-*.log
-node_modules/
-
-# 旧版单文件HTML（已被模块化版本取代）
-党建研究全文搜索.html
-党建研究文章目录.html
-
-# 临时文件
-.uploads/
-.wrangler/
+*.tmp
+*.bak

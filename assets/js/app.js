@@ -245,21 +245,26 @@ async function loadYearData(year, retry = 2) {
     ms.loadingYears.add(year);
     try {
         if (conf.useSplitData) {
-            // 分片数据：先加载 manifest，再按期加载
+            // 分片数据：先加载 manifest，再并行加载所有期
             const manifestResp = await fetch(`${conf.yearsPath}/${year}/_manifest.json`);
             if (manifestResp.ok) {
                 const manifest = await manifestResp.json();
                 ms.yearData[year] = {};
-                for (const issue of manifest.issues) {
+                // 并行加载所有期数据
+                const issuePromises = manifest.issues.map(async (issue) => {
                     try {
                         const issueResp = await fetch(`${conf.yearsPath}/${year}/${issue}.json`);
                         if (issueResp.ok) {
-                            const issueData = await issueResp.json();
-                            Object.assign(ms.yearData[year], issueData);
+                            return await issueResp.json();
                         }
                     } catch (e) {
                         console.error(`加载 ${year} 年第 ${issue} 期数据失败:`, e);
                     }
+                    return null;
+                });
+                const issueResults = await Promise.all(issuePromises);
+                for (const issueData of issueResults) {
+                    if (issueData) Object.assign(ms.yearData[year], issueData);
                 }
                 ms.loadedYears.add(year);
                 return true;
@@ -435,17 +440,29 @@ async function performBodySearch(query, initialResults, scope, bo) {
     if (!ms) return;
     const input = document.getElementById('searchInput');
     const infoEl = document.getElementById('resultInfo');
-    const resultsEl = document.getElementById('searchResults');
 
-    infoEl.textContent = '正在加载正文数据用于搜索...';
-    resultsEl.innerHTML = '<div class="loading"><div class="spinner"></div><div>加载正文数据中...</div></div>';
+    // 先显示标题搜索结果，不让学生等
+    if (initialResults && initialResults.length > 0) {
+        state.searchResults = initialResults;
+        state.currentPage = 1;
+        const qDisplay = input.value.trim();
+        infoEl.textContent = `共 ${initialResults.length} 篇（标题匹配）· 正在加载正文数据搜索更多...`;
+        renderSearchPage();
+    } else {
+        infoEl.textContent = '正在加载正文数据用于搜索...';
+        document.getElementById('searchResults').innerHTML = '<div class="loading"><div class="spinner"></div><div>加载正文数据中...</div></div>';
+    }
 
-    // 按需加载所有未加载的年份
+    // 并行加载所有未加载的年份
     const years = [...new Set(ms.meta.filter(a => a.h).map(a => a.y))].sort((a, b) => b - a);
+    const loadPromises = [];
     for (const y of years) {
         if (!ms.loadedYears.has(String(y))) {
-            await loadYearData(y);
+            loadPromises.push(loadYearData(y));
         }
+    }
+    if (loadPromises.length > 0) {
+        await Promise.all(loadPromises);
     }
     ms.fullTextReady = true;
     state.fullTextReady = true;
@@ -732,9 +749,7 @@ function renderArticleBody(url, year, bodyEl) {
     const yd = ms.yearData[String(year)];
     if (yd && yd[url]) {
         const bodyData = yd[url];
-        if (bodyData.bm) {
-            bodyEl.innerHTML = renderMarkdown(bodyData.bm);
-        } else if (bodyData.b) {
+        if (bodyData.b) {
             const body = bodyData.b.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
             bodyEl.innerHTML = renderMarkdown(body);
         } else {

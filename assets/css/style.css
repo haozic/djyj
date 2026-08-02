@@ -1249,12 +1249,8 @@ body.article-active .reading-progress { display: block; }
 }
 .sp-meta { font-size: 12px; color: var(--text-3); }
 .section-page-search {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: calc(76px + env(safe-area-inset-top, 0px));
-    background: var(--card);
-    z-index: 99;
+    padding: 10px 0 0;
+    border-bottom: none;
 }
 .section-page-search input {
     width: 100%;
@@ -1699,7 +1695,10 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
 
     /* Section Page */
     .section-page-body { padding: 16px 24px 56px; }
+    .section-page-header { padding: 14px 24px 14px; }
     .sp-title { font-size: 22px; }
+    .section-page-search { padding: 12px 0 0; }
+    .section-page-search input { font-size: 15px; padding: 10px 16px; }
 
     /* About */
     .about-page-body { padding: 40px 48px 56px; }

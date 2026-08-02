@@ -104,18 +104,22 @@
 <!-- ===== 杂志应用页 ===== -->
 <div id="app">
 <div class="app-sidebar">
-<header class="app-header">
+<div class="sidebar-header">
     <button class="header-home-btn" onclick="goHome()" title="返回首页"><svg class="icon"><use href="#i-home"/></svg></button>
-    <h1 id="magTitle">—</h1>
-    <p class="app-subtitle"><span id="totalCount">-</span> 篇文章</p>
-    <div class="search-status" id="searchStatus">加载中...</div>
     <button class="header-about-btn" onclick="showAboutPage()" title="关于"><svg class="icon"><use href="#i-info"/></svg></button>
-</header>
+    <div class="sidebar-brand">
+        <h1 id="magTitle">—</h1>
+        <div class="sidebar-meta">
+            <span class="app-subtitle"><span id="totalCount">-</span> 篇文章</span>
+            <span class="search-status" id="searchStatus">加载中...</span>
+        </div>
+    </div>
+</div>
 
 <section class="search-bar" id="searchBar">
     <div class="search-box">
         <svg class="icon search-icon"><use href="#i-search"/></svg>
-        <input type="text" id="searchInput" placeholder="输入关键词..." autocomplete="off">
+        <input type="text" id="searchInput" placeholder="输入关键词搜索..." autocomplete="off">
         <button class="search-btn" id="searchBtn">搜索</button>
     </div>
     <div class="filters" id="filters">
@@ -279,6 +283,6 @@
     <div class="section-page-body" id="sectionPageBody"></div>
 </div>
 
-<script src="assets/js/app.js?v=20260802d"></script>
+<script src="assets/js/app.js?v=20260802e"></script>
 </body>
 </html>

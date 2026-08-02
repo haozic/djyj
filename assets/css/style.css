@@ -299,14 +299,32 @@ body.about-active { padding-bottom: 0; }
     font-size: 11px;
 }
 
-/* ===== App Header ===== */
-.app-header {
+/* ===== App Header (mobile: top bar) ===== */
+.sidebar-header {
     background: linear-gradient(135deg, var(--mag-color-dark, var(--primary-dark)) 0%, var(--mag-color, var(--primary)) 100%);
     color: oklch(0.98 0.005 30);
     padding: 14px 48px 12px;
     text-align: center;
     position: relative;
     box-shadow: 0 2px 12px oklch(0.2 0.01 30 / 0.12);
+}
+.sidebar-brand h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 2px;
+}
+.sidebar-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.app-subtitle {
+    font-size: 11px;
+    opacity: 0.75;
+    font-weight: 400;
 }
 .header-home-btn {
     position: absolute;
@@ -346,18 +364,6 @@ body.about-active { padding-bottom: 0; }
 }
 .header-about-btn .icon { width: 17px; height: 17px; }
 .header-about-btn:hover { background: oklch(1 0 0 / 0.22); }
-.app-header h1 {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    margin-bottom: 2px;
-}
-.app-subtitle {
-    font-size: 11px;
-    opacity: 0.75;
-    font-weight: 400;
-    display: inline;
-}
 .search-status {
     font-size: 10px;
     opacity: 0.6;
@@ -1530,34 +1536,36 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
     .mag-desc { font-size: 13px; }
     .mag-meta { font-size: 13px; }
 
-    /* App Header (in sidebar) */
-    .app-header {
-        padding: 28px 24px 16px;
-        position: relative;
-        top: auto;
-        z-index: auto;
+    /* Sidebar Header (desktop) */
+    .sidebar-header {
+        padding: 32px 24px 20px;
         text-align: left;
         border-radius: 0;
+        box-shadow: none;
+        border-bottom: 1px solid oklch(1 0 0 / 0.1);
     }
-    .app-header h1 { font-size: 24px; letter-spacing: 2px; }
-    .app-subtitle { font-size: 12px; }
+    .sidebar-brand h1 { font-size: 26px; letter-spacing: 3px; margin-bottom: 6px; }
+    .sidebar-meta { justify-content: flex-start; }
+    .app-subtitle { font-size: 13px; }
     .search-status { font-size: 11px; }
-    .header-home-btn { width: 34px; height: 34px; left: 16px; }
-    .header-about-btn { width: 34px; height: 34px; right: 16px; }
-    .header-home-btn .icon, .header-about-btn .icon { width: 18px; height: 18px; }
+    .header-home-btn { width: 36px; height: 36px; left: 16px; top: 24px; transform: none; }
+    .header-about-btn { width: 36px; height: 36px; right: 16px; top: 24px; transform: none; }
+    .header-home-btn .icon, .header-about-btn .icon { width: 19px; height: 19px; }
 
     /* Search (in sidebar) */
     .search-bar {
-        padding: 12px 20px 20px;
+        padding: 20px 24px 24px;
         position: relative;
         top: auto;
         z-index: auto;
         border-bottom: none;
     }
-    #searchInput { font-size: 14px; }
-    .search-btn { padding: 9px 20px; font-size: 14px; }
-    .scope-option { font-size: 12px; padding: 4px 10px; }
-    .filter-check { font-size: 12px; }
+    #searchInput { font-size: 14px; padding: 11px 14px 11px 40px; }
+    .search-btn { padding: 10px 22px; font-size: 14px; }
+    .filters { margin-top: 14px; flex-direction: column; align-items: stretch; gap: 10px; }
+    .scope-group { justify-content: space-between; }
+    .scope-option { font-size: 12px; padding: 5px 10px; flex: 1; justify-content: center; }
+    .filter-check { font-size: 12px; justify-content: center; padding: 5px 0; background: var(--bg); border-radius: var(--radius-sm); }
 
     /* Nav (in main, sticky at top) */
     .nav-tabs {
@@ -1616,6 +1624,7 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
 
 /* ===== Wide (>=1024px) ===== */
 @media (min-width: 1024px) {
-    .app-header h1 { font-size: 28px; letter-spacing: 2px; }
+    .sidebar-brand h1 { font-size: 28px; letter-spacing: 3px; }
     .mag-cover-title { font-size: 30px; }
+    .app-sidebar { width: 360px; }
 }

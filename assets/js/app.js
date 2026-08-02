@@ -1070,7 +1070,7 @@ function renderSectionPageBody(articles, query) {
         const ya = yg[year];
         const ig = {};
         ya.forEach(a => { if (!ig[a.i]) ig[a.i] = []; ig[a.i].push(a); });
-        const issues = Object.keys(ig).sort((a, b) => parseInt(a) - parseInt(b));
+        const issues = Object.keys(ig).sort((a, b) => parseInt(b) - parseInt(a));
         html += `<div class="sp-year-group"><div class="sp-year-header">${year}年 (${ya.length}篇)</div>`;
         issues.forEach(iss => {
             const ia = ig[iss];
@@ -1126,7 +1126,7 @@ function renderCatalog() {
     const chevron = svgIcon('i-chevron');
     let html = '';
     years.forEach(year => {
-        const issues = Object.keys(catalog[year]).sort((a, b) => parseInt(a) - parseInt(b));
+        const issues = Object.keys(catalog[year]).sort((a, b) => parseInt(b) - parseInt(a));
         let total = 0;
         issues.forEach(ik => total += Object.values(catalog[year][ik]).reduce((s, arr) => s + arr.length, 0));
         html += `<div class="year-block collapsed" id="yb-${year}">
@@ -1177,7 +1177,7 @@ function toggleYear(year) {
     if (wasCollapsed && !state.catalogExpanded.has(`y-${year}`)) {
         state.catalogExpanded.add(`y-${year}`);
         const catalog = state.catalogData;
-        const issues = Object.keys(catalog[year]).sort((a, b) => parseInt(a) - parseInt(b));
+        const issues = Object.keys(catalog[year]).sort((a, b) => parseInt(b) - parseInt(a));
         const chevron = svgIcon('i-chevron');
         let html = '';
         issues.forEach(ik => {

@@ -1245,23 +1245,30 @@ body.article-active .reading-progress { display: block; }
     font-weight: 700;
     line-height: 1.5;
     color: var(--text);
-    margin-bottom: 4px;
 }
-.sp-meta { font-size: 12px; color: var(--text-3); }
-.section-page-search {
-    padding: 10px 0 0;
-    border-bottom: none;
+.sp-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
 }
-.section-page-search input {
-    width: 100%;
-    padding: 8px 14px;
+.sp-meta { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+.sp-search-input {
+    flex: 1;
+    min-width: 120px;
+    max-width: 240px;
+    margin-left: auto;
+    padding: 6px 12px;
     border: 1px solid var(--border-2);
     border-radius: var(--radius-sm);
-    font-size: 14px;
+    font-size: 13px;
     background: var(--bg);
     color: var(--text);
+    -webkit-appearance: none;
 }
-.section-page-search input:focus { outline: none; border-color: var(--mag-color, var(--primary-light)); background: var(--card); }
+.sp-search-input:focus { outline: none; border-color: var(--mag-color, var(--primary-light)); background: var(--card); }
+.sp-search-input::placeholder { color: var(--text-3); }
+.section-page-search { display: none; }
 
 .section-page-body {
     max-width: var(--maxw);
@@ -1649,28 +1656,28 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
         transition: opacity 0.25s var(--ease);
     }
     .section-card:hover::before { opacity: 1; }
+    .sc-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 10px;
+        line-height: 1.4;
+    }
     .sc-count {
-        font-size: 36px;
-        font-weight: 800;
-        color: var(--mag-color, var(--primary));
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--text-3);
         line-height: 1;
-        margin-bottom: 8px;
         font-variant-numeric: tabular-nums;
         display: flex;
         align-items: baseline;
-        gap: 3px;
+        gap: 2px;
         justify-content: center;
     }
     .sc-unit {
         display: inline;
-        font-size: 14px;
-        font-weight: 500;
+        font-size: 13px;
         color: var(--text-3);
-    }
-    .sc-name {
-        font-size: 15px;
-        color: var(--text-2);
-        font-weight: 500;
     }
 
     /* Catalog */
@@ -1697,8 +1704,7 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
     .section-page-body { padding: 16px 24px 56px; }
     .section-page-header { padding: 14px 24px 14px; }
     .sp-title { font-size: 22px; }
-    .section-page-search { padding: 12px 0 0; }
-    .section-page-search input { font-size: 15px; padding: 10px 16px; }
+    .sp-search-input { font-size: 14px; padding: 8px 14px; max-width: 280px; }
 
     /* About */
     .about-page-body { padding: 40px 48px 56px; }

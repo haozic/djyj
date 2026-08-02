@@ -1020,8 +1020,8 @@ function renderSections() {
     let html = '';
     sorted.forEach(([name, count]) => {
         html += `<div class="section-card" onclick="showSectionPage('${encodeURIComponent(name)}')">
-            <div class="sc-count">${count}<span class="sc-unit">篇</span></div>
             <div class="sc-name">${escHtml(name)}</div>
+            <div class="sc-count">${count}<span class="sc-unit">篇</span></div>
         </div>`;
     });
     container.innerHTML = html;

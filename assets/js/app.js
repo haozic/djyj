@@ -547,7 +547,7 @@ function renderPagination(totalPages) {
     }
     let html = '';
     const cur = state.currentPage;
-    html += `<button class="page-btn" onclick="goToPage(${cur - 1})" ${cur <= 1 ? 'disabled' : ''}><svg class="icon" style="width:14px;height:14px;"><use href="#i-chevron" style="transform:rotate(90deg);"/></svg></button>`;
+    html += `<button class="page-btn" onclick="goToPage(${cur - 1})" ${cur <= 1 ? 'disabled' : ''}><svg class="icon" style="width:14px;height:14px;transform:rotate(90deg);"><use href="#i-chevron"/></svg></button>`;
     const pages = [];
     if (totalPages <= 7) {
         for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -564,7 +564,7 @@ function renderPagination(totalPages) {
         if (p === '...') html += '<span class="page-ellipsis">…</span>';
         else html += `<button class="page-btn ${p === cur ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`;
     });
-    html += `<button class="page-btn" onclick="goToPage(${cur + 1})" ${cur >= totalPages ? 'disabled' : ''}><svg class="icon" style="width:14px;height:14px;"><use href="#i-chevron" style="transform:rotate(-90deg);"/></svg></button>`;
+    html += `<button class="page-btn" onclick="goToPage(${cur + 1})" ${cur >= totalPages ? 'disabled' : ''}><svg class="icon" style="width:14px;height:14px;transform:rotate(-90deg);"><use href="#i-chevron"/></svg></button>`;
     html += `<span class="page-info">${cur}/${totalPages} 页 · 共 ${state.searchResults.length} 条</span>`;
     pagination.innerHTML = html;
 }

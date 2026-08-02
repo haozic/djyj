@@ -1500,13 +1500,13 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
         display: none;
     }
     .app-sidebar {
-        width: 340px;
+        width: 380px;
         flex-shrink: 0;
         position: sticky;
         top: 0;
         height: 100vh;
         overflow-y: auto;
-        background: var(--card);
+        background: var(--bg-2);
         border-right: 1px solid var(--border);
         z-index: 100;
     }
@@ -1546,29 +1546,29 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
     .mag-desc { font-size: 13px; }
     .mag-meta { font-size: 13px; }
 
-    /* Sidebar Header (desktop) - modern minimal */
+    /* Sidebar Header (desktop) - spacious refined */
     .sidebar-header {
         background: var(--card);
         color: var(--text);
-        padding: 28px 24px 16px;
+        padding: 36px 32px 24px;
         text-align: left;
         border-radius: 0;
         box-shadow: none;
         border-bottom: 1px solid var(--border);
     }
     .sidebar-brand h1 {
-        font-size: 22px;
-        letter-spacing: 1px;
-        margin-bottom: 4px;
+        font-size: 26px;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
         color: var(--text);
         font-weight: 700;
     }
     .sidebar-meta { justify-content: flex-start; }
-    .app-subtitle { font-size: 12px; color: var(--text-3); opacity: 1; }
+    .app-subtitle { font-size: 13px; color: var(--text-3); opacity: 1; }
     .search-status { font-size: 11px; opacity: 1; color: var(--text-3); }
     .header-home-btn {
-        width: 30px; height: 30px;
-        left: auto; top: 22px; right: 48px;
+        width: 34px; height: 34px;
+        left: auto; top: 28px; right: 54px;
         transform: none;
         background: transparent;
         border: none;
@@ -1576,12 +1576,12 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
         border-radius: 8px;
     }
     .header-home-btn:hover {
-        background: var(--bg-2);
+        background: var(--bg);
         color: var(--mag-color);
     }
     .header-about-btn {
-        width: 30px; height: 30px;
-        right: 16px; top: 22px;
+        width: 34px; height: 34px;
+        right: 18px; top: 28px;
         transform: none;
         background: transparent;
         border: none;
@@ -1589,23 +1589,23 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
         border-radius: 8px;
     }
     .header-about-btn:hover {
-        background: var(--bg-2);
+        background: var(--bg);
         color: var(--mag-color);
     }
     .header-home-btn .icon, .header-about-btn .icon { width: 18px; height: 18px; }
 
     /* Search (in sidebar) */
     .search-bar {
-        padding: 16px 24px 20px;
+        padding: 24px 32px 28px;
         position: relative;
         top: auto;
         z-index: auto;
         border-bottom: 1px solid var(--border);
         background: var(--card);
     }
-    #searchInput { font-size: 14px; padding: 11px 14px 11px 40px; }
-    .search-btn { padding: 10px 22px; font-size: 14px; }
-    .filters { margin-top: 14px; flex-direction: column; align-items: stretch; gap: 10px; }
+    #searchInput { font-size: 15px; padding: 12px 16px 12px 42px; }
+    .search-btn { padding: 12px 24px; font-size: 14px; }
+    .filters { margin-top: 16px; flex-direction: column; align-items: stretch; gap: 12px; }
     .scope-group { justify-content: space-between; }
     .scope-option { font-size: 12px; padding: 5px 10px; flex: 1; justify-content: center; }
     .filter-check { font-size: 12px; justify-content: center; padding: 5px 0; background: var(--bg); border-radius: var(--radius-sm); }
@@ -1629,9 +1629,22 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
     .result-card { padding: 16px 20px; }
     .rc-title { font-size: 16px; }
 
-    /* Section cards */
-    .section-card { padding: 18px 22px; }
-    .sc-name { font-size: 16px; }
+    /* Section cards - grid layout */
+    .section-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 14px;
+    }
+    .section-card {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 24px 20px;
+        text-align: center;
+        gap: 12px;
+    }
+    .sc-name { font-size: 16px; order: 1; }
+    .sc-bar { width: 100%; order: 2; }
+    .sc-count { font-size: 13px; order: 3; text-align: center; min-width: 0; }
 
     /* Catalog */
     .year-block { border-radius: var(--radius); }
@@ -1667,7 +1680,7 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
 
 /* ===== Wide (>=1024px) ===== */
 @media (min-width: 1024px) {
-    .sidebar-brand h1 { font-size: 26px; letter-spacing: 2px; }
+    .sidebar-brand h1 { font-size: 28px; letter-spacing: 2px; }
     .mag-cover-title { font-size: 30px; }
-    .app-sidebar { width: 360px; }
+    .app-sidebar { width: 400px; }
 }

@@ -1015,16 +1015,14 @@ function renderSections() {
     const counter = {};
     meta.forEach(a => { counter[a.s] = (counter[a.s] || 0) + 1; });
     const sorted = Object.entries(counter).sort((a, b) => b[1] - a[1]);
-    const maxCount = sorted.length > 0 ? sorted[0][1] : 1;
 
     const container = document.getElementById('sectionContent');
     let html = '';
     sorted.forEach(([name, count]) => {
-        const pct = (count / maxCount * 100).toFixed(0);
         html += `<div class="section-card" onclick="showSectionPage('${encodeURIComponent(name)}')">
             <div class="sc-name">${escHtml(name)}</div>
-            <div class="sc-bar"><div class="sc-bar-fill" style="width:${pct}%;"></div></div>
-            <div class="sc-count">${count} 篇</div>
+            <div class="sc-count">${count}</div>
+            <div class="sc-unit">篇</div>
         </div>`;
     });
     container.innerHTML = html;

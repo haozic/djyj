@@ -757,20 +757,8 @@ body.about-active { padding-bottom: 0; }
 }
 .section-card:active { transform: translateY(0); }
 .sc-name { flex: 1; font-weight: 600; font-size: 15px; color: var(--text); }
-.sc-bar {
-    width: 80px;
-    height: 5px;
-    background: var(--border);
-    border-radius: 3px;
-    overflow: hidden;
-}
-.sc-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--mag-color, var(--primary)), var(--mag-color-dark, var(--primary-dark)));
-    border-radius: 3px;
-    transition: width 0.4s var(--ease);
-}
 .sc-count { font-size: 13px; color: var(--text-3); white-space: nowrap; min-width: 44px; text-align: right; font-weight: 500; }
+.sc-unit { display: none; }
 
 /* ===== Catalog View ===== */
 .catalog-list { display: flex; flex-direction: column; gap: 10px; }
@@ -1632,19 +1620,48 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
     /* Section cards - grid layout */
     .section-list {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 16px;
     }
     .section-card {
         flex-direction: column;
-        align-items: stretch;
-        padding: 24px 20px;
+        align-items: center;
+        padding: 28px 20px 24px;
         text-align: center;
-        gap: 12px;
+        gap: 0;
+        position: relative;
+        overflow: hidden;
     }
-    .sc-name { font-size: 16px; order: 1; }
-    .sc-bar { width: 100%; order: 2; }
-    .sc-count { font-size: 13px; order: 3; text-align: center; min-width: 0; }
+    .section-card::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--mag-color-dark, var(--primary-dark)), var(--mag-color, var(--primary)));
+        opacity: 0;
+        transition: opacity 0.25s var(--ease);
+    }
+    .section-card:hover::before { opacity: 1; }
+    .sc-count {
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--mag-color, var(--primary));
+        line-height: 1;
+        margin-bottom: 4px;
+        font-variant-numeric: tabular-nums;
+    }
+    .sc-unit {
+        display: block;
+        font-size: 12px;
+        color: var(--text-3);
+        margin-bottom: 10px;
+    }
+    .sc-name {
+        font-size: 15px;
+        order: 0;
+        color: var(--text-2);
+        font-weight: 500;
+    }
 
     /* Catalog */
     .year-block { border-radius: var(--radius); }

@@ -108,6 +108,10 @@ input { font-family: inherit; }
 body.mag-active #homePage { display: none; }
 body.mag-active #app { display: block; }
 
+/* Sidebar & Main wrappers (mobile: plain block; desktop: flex row) */
+.app-sidebar { display: block; }
+.app-main { display: block; }
+
 body.section-active #homePage,
 body.section-active #app { display: none; }
 body.section-active #sectionPage { display: block; }
@@ -1477,6 +1481,28 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
     .mobile-only { display: none; }
     body { padding-bottom: 0; font-size: 15px; }
 
+    /* Left-right layout: sidebar + main */
+    body.mag-active #app {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+    }
+    .app-sidebar {
+        width: 340px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        background: var(--card);
+        border-right: 1px solid var(--border);
+        z-index: 100;
+    }
+    .app-main {
+        flex: 1;
+        min-width: 0;
+    }
+
     /* Home */
     .home-header { padding: calc(32px + env(safe-area-inset-top, 0px)) 24px 20px; }
     .home-title { font-size: 36px; letter-spacing: 10px; }
@@ -1504,43 +1530,51 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
     .mag-desc { font-size: 13px; }
     .mag-meta { font-size: 13px; }
 
-    /* App Header */
+    /* App Header (in sidebar) */
     .app-header {
-        padding: 24px 56px 20px;
-        position: sticky;
-        top: 0;
-        z-index: 100;
+        padding: 28px 24px 16px;
+        position: relative;
+        top: auto;
+        z-index: auto;
+        text-align: left;
+        border-radius: 0;
     }
-    .app-header h1 { font-size: 26px; }
-    .app-subtitle { font-size: 13px; }
+    .app-header h1 { font-size: 24px; letter-spacing: 2px; }
+    .app-subtitle { font-size: 12px; }
     .search-status { font-size: 11px; }
-    .header-home-btn, .header-about-btn { width: 36px; height: 36px; }
-    .header-home-btn .icon, .header-about-btn .icon { width: 19px; height: 19px; }
+    .header-home-btn { width: 34px; height: 34px; left: 16px; }
+    .header-about-btn { width: 34px; height: 34px; right: 16px; }
+    .header-home-btn .icon, .header-about-btn .icon { width: 18px; height: 18px; }
 
-    /* Search */
+    /* Search (in sidebar) */
     .search-bar {
-        padding: 14px 24px 16px;
-        position: sticky;
-        top: var(--header-h);
-        z-index: 99;
+        padding: 12px 20px 20px;
+        position: relative;
+        top: auto;
+        z-index: auto;
+        border-bottom: none;
     }
-    #searchInput { font-size: 15px; }
-    .search-btn { padding: 9px 28px; font-size: 15px; }
-    .scope-option { font-size: 13px; padding: 4px 12px; }
-    .filter-check { font-size: 13px; }
+    #searchInput { font-size: 14px; }
+    .search-btn { padding: 9px 20px; font-size: 14px; }
+    .scope-option { font-size: 12px; padding: 4px 10px; }
+    .filter-check { font-size: 12px; }
 
-    /* Nav */
+    /* Nav (in main, sticky at top) */
     .nav-tabs {
         position: sticky;
-        top: calc(var(--header-h) + var(--search-h));
+        top: 0;
         z-index: 98;
         display: flex;
         padding: 8px 24px;
+        background: var(--card);
+        border-bottom: 1px solid var(--border);
+        max-width: none;
+        margin: 0;
     }
     .nav-tab { font-size: 15px; padding: 12px 16px; }
 
-    /* Content */
-    .content { padding: 20px 24px 40px; position: relative; z-index: 1; }
+    /* Content (in main) */
+    .content { padding: 20px 24px 40px; position: relative; z-index: 1; max-width: none; }
     .result-card { padding: 16px 20px; }
     .rc-title { font-size: 16px; }
 

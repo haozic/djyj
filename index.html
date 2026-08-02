@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css?v=20260802d">
+<link rel="stylesheet" href="assets/css/style.css?v=20260802e">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b0000' stroke-width='2'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg>">
 <script>
 (function(){try{var t=localStorage.getItem('reading_theme')||'auto';document.documentElement.setAttribute('data-theme',t);var fs=localStorage.getItem('reading_fontsize');if(fs)document.documentElement.style.setProperty('--article-fs',fs+'px');}catch(e){}})();
@@ -103,6 +103,7 @@
 
 <!-- ===== 杂志应用页 ===== -->
 <div id="app">
+<div class="app-sidebar">
 <header class="app-header">
     <button class="header-home-btn" onclick="goHome()" title="返回首页"><svg class="icon"><use href="#i-home"/></svg></button>
     <h1 id="magTitle">—</h1>
@@ -126,7 +127,9 @@
         <label class="filter-check"><input type="checkbox" id="bodyOnly"> 仅有全文</label>
     </div>
 </section>
+</div><!-- /.app-sidebar -->
 
+<div class="app-main">
 <nav class="nav-tabs desktop-only">
     <button class="nav-tab active" data-mode="section"><svg class="icon"><use href="#i-grid"/></svg>板块</button>
     <button class="nav-tab" data-mode="catalog"><svg class="icon"><use href="#i-list"/></svg>目录</button>
@@ -149,6 +152,7 @@
         <div id="favoritesContent" class="favorites-list"></div>
     </div>
 </main>
+</div><!-- /.app-main -->
 
 <nav class="bottom-nav mobile-only">
     <button class="bn-item active" data-mode="section">
@@ -275,6 +279,6 @@
     <div class="section-page-body" id="sectionPageBody"></div>
 </div>
 
-<script src="assets/js/app.js?v=20260802c"></script>
+<script src="assets/js/app.js?v=20260802d"></script>
 </body>
 </html>

@@ -292,6 +292,65 @@ body.about-active { padding-bottom: 0; }
     font-weight: 600;
 }
 
+/* ===== Home Guide Entry ===== */
+.home-guide-entry {
+    padding: 0 16px 8px;
+    max-width: 300px;
+    width: 100%;
+    margin: 0 auto;
+}
+.guide-link-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    text-decoration: none;
+    color: var(--text);
+    transition: all 0.2s var(--ease);
+    box-shadow: var(--shadow);
+}
+.guide-link-card:hover {
+    border-color: var(--primary-light);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+.guide-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: oklch(0.96 0.02 27);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--primary);
+}
+.guide-card-icon .icon { width: 18px; height: 18px; }
+.guide-card-text { flex: 1; min-width: 0; }
+.guide-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 2px;
+}
+.guide-card-desc {
+    font-size: 11px;
+    color: var(--text-3);
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.guide-card-arrow {
+    width: 16px;
+    height: 16px;
+    color: var(--text-3);
+    flex-shrink: 0;
+}
+
 .home-footer {
     text-align: center;
     padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 0px));
@@ -1536,6 +1595,7 @@ html[data-theme="dark"] .mag-cover { filter: brightness(0.85); }
     .mag-info h2 { font-size: 20px; }
     .mag-desc { font-size: 13px; }
     .mag-meta { font-size: 13px; }
+    .home-guide-entry { max-width: 900px; }
 
     /* Sidebar Header (desktop) - spacious grand */
     .sidebar-header {

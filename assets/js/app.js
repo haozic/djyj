@@ -788,7 +788,8 @@ function goBack() {
 function closeArticlePage() {
     document.body.classList.remove('article-active');
     state.currentArticleUrl = null;
-    document.getElementById('readingProgress').style.width = '0%';
+    const ring = document.getElementById('progressRingFg');
+    if (ring) ring.style.strokeDashoffset = RING_CIRCUMFERENCE;
     document.getElementById('backToTopBtn')?.classList.remove('show');
     // 关闭设置面板
     document.getElementById('articleSettingsPanel')?.classList.remove('show');
@@ -888,13 +889,16 @@ function closeAboutPage() {
     document.body.classList.remove('about-active');
 }
 
-/* ===== 阅读进度条 ===== */
+/* ===== 阅读进度环 ===== */
+const RING_CIRCUMFERENCE = 2 * Math.PI * 21; // r=21
 function updateReadingProgress() {
     if (!document.body.classList.contains('article-active')) return;
     const scrollTop = window.scrollY;
     const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-    document.getElementById('readingProgress').style.width = pct + '%';
+    const pct = docHeight > 0 ? (scrollTop / docHeight) : 0;
+    // 更新进度环
+    const ring = document.getElementById('progressRingFg');
+    if (ring) ring.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - pct);
     // 返回顶部按钮：滚动超过 300px 时显示
     const btn = document.getElementById('backToTopBtn');
     if (btn) btn.classList.toggle('show', scrollTop > 300);

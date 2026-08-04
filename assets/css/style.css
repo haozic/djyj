@@ -955,27 +955,13 @@ body.about-active { padding-bottom: 0; }
 }
 .fh-actions button:hover { border-color: var(--mag-color, var(--primary-light)); color: var(--mag-color, var(--primary)); }
 
-/* ===== Reading Progress ===== */
-.reading-progress {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 3px;
-    background: var(--mag-color, var(--primary));
-    z-index: 201;
-    width: 0%;
-    transition: width 0.05s linear;
-    display: none;
-}
-body.article-active .reading-progress { display: block; }
-
-/* ===== Back to Top ===== */
+/* ===== Back to Top with Progress Ring ===== */
 .back-to-top {
     position: fixed;
     bottom: calc(24px + env(safe-area-inset-bottom, 0px));
     right: 20px;
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     border: none;
     background: var(--card);
@@ -991,7 +977,34 @@ body.article-active .reading-progress { display: block; }
     transform: translateY(10px);
     transition: opacity 0.25s var(--ease), transform 0.25s var(--ease), visibility 0.25s;
 }
-.back-to-top .icon { width: 21px; height: 21px; }
+.back-to-top .icon {
+    width: 20px;
+    height: 20px;
+    position: relative;
+    z-index: 1;
+}
+.back-to-top .progress-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+.back-to-top .progress-ring-bg {
+    fill: none;
+    stroke: var(--border-2);
+    stroke-width: 2.5;
+}
+.back-to-top .progress-ring-fg {
+    fill: none;
+    stroke: var(--mag-color, var(--primary));
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 131.95;
+    stroke-dashoffset: 131.95;
+    transition: stroke-dashoffset 0.05s linear;
+}
 .back-to-top.show {
     opacity: 1;
     visibility: visible;
@@ -1000,6 +1013,12 @@ body.article-active .reading-progress { display: block; }
 .back-to-top:hover {
     background: var(--mag-color, var(--primary));
     color: white;
+}
+.back-to-top:hover .progress-ring-bg {
+    stroke: rgba(255,255,255,0.25);
+}
+.back-to-top:hover .progress-ring-fg {
+    stroke: white;
 }
 .back-to-top:active { transform: scale(0.92); }
 
